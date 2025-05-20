@@ -21,7 +21,7 @@ $CFG->dboptions = array(
 
 // Site settings
 $CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'http://localhost';
-$CFG->dataroot  = '/app/moodledata';
+$CFG->dataroot  = '/tmp/moodledata';
 $CFG->admin     = 'admin';
 
 // Directory permissions
