@@ -21,7 +21,7 @@ $CFG->dboptions = array(
 
 // Site settings
 $CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'http://localhost';
-$CFG->dataroot  = '/tmp/moodledata';
+$CFG->dataroot  = '/tmp/moodledata';  // Using /tmp which is writable on Heroku
 $CFG->admin     = 'admin';
 
 // Directory permissions
@@ -29,10 +29,10 @@ $CFG->directorypermissions = 02777;
 
 // Debug settings
 $CFG->debug = (E_ALL & ~E_NOTICE & ~E_DEPRECATED);
-$CFG->debugdisplay = 0;
+$CFG->debugdisplay = 1;  // Temporarily enable debug display
 $CFG->debugstring = '';
 $CFG->debugemail = '';
-$CFG->debugpageinfo = 0;
+$CFG->debugpageinfo = 1;  // Temporarily enable debug page info
 
 // Cache settings
 $CFG->cachejs = 1;
