@@ -21,7 +21,7 @@ $CFG->dboptions = array(
 
 // Site settings
 $CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'http://localhost:8080';
-$CFG->dataroot  = getenv('MOODLE_DATA_ROOT') ?: '/tmp/moodledata';
+$CFG->dataroot = __DIR__ . '/moodledata';
 $CFG->admin     = 'admin';
 
 // S3 File Storage Configuration
