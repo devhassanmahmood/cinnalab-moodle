@@ -62,5 +62,9 @@ if (!file_exists($CFG->session_file_save_path)) {
     mkdir($CFG->session_file_save_path, 0777, true);
 }
 
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+
 
 require_once(__DIR__ . '/lib/setup.php');
