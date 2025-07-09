@@ -19,7 +19,7 @@
 # Temporary files including undo
 *~
 #
-/config.php
+# /config.php
 /tags
 /TAGS
 /cscope.*
@@ -60,3 +60,4 @@ phpcs.xml
 jsconfig.json
 UPGRADING-CURRENT.md
 .phpunit.cache
+# moodledata/
