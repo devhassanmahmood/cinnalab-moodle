@@ -20,20 +20,12 @@ $CFG->dboptions = array(
 );
 
 // Site settings
-$CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'http://localhost:8080';
+$CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'https://cinnalab-moodle-d1962611ca61.herokuapp.com/';
 $CFG->dataroot = __DIR__ . '/moodledata';
 $CFG->admin     = 'admin';
 
-// S3 File Storage Configuration
-$CFG->filestorage = 's3';
-$CFG->s3 = array(
-    'access_key' => getenv('AWS_ACCESS_KEY'),
-    'secret_key' => getenv('AWS_SECRET_KEY'),
-    'bucket_name' => getenv('AWS_S3_BUCKET') ?: 'documenso-cinnalab',
-    'region' => getenv('AWS_REGION') ?: 'eu-north-1',
-    'use_path_style_endpoint' => false,
-    'use_accelerate_endpoint' => false
-);
+// S3 File Storage Configuration using objectfs tool
+$CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
 
 // Directory permissions
 $CFG->directorypermissions = 02777;
@@ -65,6 +57,5 @@ if (!file_exists($CFG->session_file_save_path)) {
 if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
     $_SERVER['HTTPS'] = 'on';
 }
-
 
 require_once(__DIR__ . '/lib/setup.php');

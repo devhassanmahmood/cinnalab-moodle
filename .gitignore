@@ -61,3 +61,30 @@ jsconfig.json
 UPGRADING-CURRENT.md
 .phpunit.cache
 # moodledata/
+
+# Heroku and deployment specific
+.env
+.env.local
+.env.production
+.env.staging
+*.log
+logs/
+tmp/
+temp/
+
+# AWS credentials and sensitive files
+.aws/
+aws-credentials.txt
+aws-config.txt
+s3-credentials.txt
+
+# Deployment scripts (optional - remove if you want to track them)
+# deploy-s3.sh
+# S3-SETUP.md
+
+# Local development files
+moodledata/
+cache/
+sessions/
+temp/
+backup/
