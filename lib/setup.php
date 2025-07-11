@@ -783,13 +783,13 @@ if (!isset($CFG->debugdisplay)) {
 core_shutdown_manager::initialize();
 
 // Verify upgrade is not running unless we are in a script that needs to execute in any case
-if (!defined('NO_UPGRADE_CHECK') and isset($CFG->upgraderunning)) {
-    if ($CFG->upgraderunning < time()) {
-        unset_config('upgraderunning');
-    } else {
-        throw new \moodle_exception('upgraderunning');
-    }
-}
+// if (!defined('NO_UPGRADE_CHECK') and isset($CFG->upgraderunning)) {
+//     if ($CFG->upgraderunning < time()) {
+//         unset_config('upgraderunning');
+//     } else {
+//         throw new \moodle_exception('upgraderunning');
+//     }
+// }
 
 // enable circular reference collector in PHP 5.3,
 // it helps a lot when using large complex OOP structures such as in amos or gradebook
