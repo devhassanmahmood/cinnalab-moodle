@@ -763,19 +763,19 @@ if (!$outagelessupgrade) {
         $adminids = explode(',', $CFG->siteadmins);
         $adminuser = get_complete_user_data('id', reset($adminids));
 
-        if ($adminuser->password === 'adminsetuppending') {
-            // Prevent installation hijacking.
-            if ($adminuser->lastip !== getremoteaddr()) {
-                throw new \moodle_exception('installhijacked', 'admin');
-            }
-            // Login user and let him set password and admin details.
-            $adminuser->newadminuser = 1;
-            complete_user_login($adminuser);
-            redirect("$CFG->wwwroot/user/editadvanced.php?id=$adminuser->id"); // Edit thyself.
+        // if ($adminuser->password === 'adminsetuppending') {
+        //     // Prevent installation hijacking.
+        //     if ($adminuser->lastip !== getremoteaddr()) {
+        //         throw new \moodle_exception('installhijacked', 'admin');
+        //     }
+        //     // Login user and let him set password and admin details.
+        //     $adminuser->newadminuser = 1;
+        //     complete_user_login($adminuser);
+        //     redirect("$CFG->wwwroot/user/editadvanced.php?id=$adminuser->id"); // Edit thyself.
 
-        } else {
+        // } else {
             unset_config('adminsetuppending');
-        }
+        // }
 
     } else {
         // Just make sure upgrade logging is properly terminated.
