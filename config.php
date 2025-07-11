@@ -20,7 +20,7 @@ $CFG->dboptions = array(
 );
 
 // Site settings
-$CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'https://cinnalab-moodle-d1962611ca61.herokuapp.com/';
+$CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'https://cinnalab-moodle-d1962611ca61.herokuapp.com';
 $CFG->dataroot = __DIR__ . '/moodledata';
 $CFG->admin     = 'admin';
 

@@ -13,7 +13,7 @@
   "env": {
     "MOODLE_SITE_URL": {
       "description": "Your Moodle site URL (e.g., https://your-app.herokuapp.com)",
-      "value": "https://cinnalab-moodle-d1962611ca61.herokuapp.com/"
+      "value": "https://cinnalab-moodle-d1962611ca61.herokuapp.com"
     },
     "DATABASE_URL": {
       "description": "PostgreSQL database URL from Heroku Postgres addon",
