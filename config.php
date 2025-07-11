@@ -45,6 +45,9 @@ $CFG->cachetype = 'file';
 $CFG->session_handler_class = '\core\session\file';
 $CFG->session_file_save_path = $CFG->dataroot . '/sessions';
 
+// Allow iframe embedding
+$CFG->allowframembedding = true;
+
 // This is a new installation, not an upgrade
 $CFG->upgradekey = '';
 
