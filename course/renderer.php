@@ -1060,7 +1060,14 @@ class core_course_renderer extends plugin_renderer_base {
             // This is a request for the course information.
             $courseid = required_param('courseid', PARAM_INT);
 
-            $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+            $course = $DB->get_record('course', ['id' => $courseid], '*', IGNORE_MISSING);
+            if ($course === false) {
+                throw new \moodle_exception('invalidcourseid');
+            }
+            $coursecontext = context_course::instance($course->id, MUST_EXIST);
+            if ($course->visible == 0 && !has_capability('moodle/course:viewhiddencourses', $coursecontext)) {
+                throw new \moodle_exception('invalidcourseid');
+            }
 
             $chelper = new coursecat_helper();
             $chelper->set_show_courses(self::COURSECAT_SHOW_COURSES_EXPANDED);
@@ -1409,7 +1416,7 @@ class core_course_renderer extends plugin_renderer_base {
      */
     #[\core\attribute\deprecated(null, since: '4.3', mdl: 'MDL-78744', final: true)]
     public function render_activity_information() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**

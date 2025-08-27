@@ -33,7 +33,7 @@ class encryption {
      */
     #[\core\attribute\deprecated(null, reason: 'Sodium is always present', since: '4.3', mdl: 'MDL-71421', final: true)]
     public static function is_sodium_installed() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**
@@ -61,8 +61,8 @@ class encryption {
             throw new \moodle_exception('encryption_keyalreadyexists', 'error');
         }
 
-        // Don't make it read-only in Behat or it will fail to clear for future runs.
-        if (defined('BEHAT_SITE_RUNNING')) {
+        // Don't make it read-only in tests or it will fail to clear for future runs.
+        if (defined('BEHAT_SITE_RUNNING') || PHPUNIT_TEST) {
             $chmod = false;
         }
 

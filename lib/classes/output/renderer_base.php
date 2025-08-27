@@ -362,6 +362,11 @@ class renderer_base {
      */
     public function get_logo_url($maxwidth = null, $maxheight = 200) {
         global $CFG;
+
+        if (mutenancy_is_active()) {
+            return \tool_mutenancy\local\appearance::get_logo_url($maxwidth, $maxheight);
+        }
+
         $logo = get_config('core_admin', 'logo');
         if (empty($logo)) {
             return false;
@@ -393,6 +398,11 @@ class renderer_base {
      */
     public function get_compact_logo_url($maxwidth = 300, $maxheight = 300) {
         global $CFG;
+
+        if (mutenancy_is_active()) {
+            return \tool_mutenancy\local\appearance::get_compact_logo_url($maxwidth, $maxheight);
+        }
+
         $logo = get_config('core_admin', 'logocompact');
         if (empty($logo)) {
             return false;
@@ -429,7 +439,7 @@ class renderer_base {
      */
     #[\core\attribute\deprecated(null, reason: 'It is no longer used', since: '4.0', final: true)]
     public function should_display_main_logo() {
-        \core\deprecation::emit_deprecation_if_present([self::class, __FUNCTION__]);
+        \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
     }
 
     /**

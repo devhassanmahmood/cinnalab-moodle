@@ -746,6 +746,8 @@ function course_delete_module($cmid, $async = false) {
             "Cannot delete this module as the file mod/$modulename/lib.php is missing.");
     }
 
+    // Warning! there is very similar code in remove_course_contents.
+    // If you are changing this code, you probably need to change that too.
     $deleteinstancefunction = $modulename . '_delete_instance';
 
     // Ensure the delete_instance function exists for this module.
@@ -763,12 +765,20 @@ function course_delete_module($cmid, $async = false) {
         }
     }
 
+    if (empty($cm->instance)) {
+        throw new moodle_exception('cannotdeletemodulemissinginstance', '', '', null,
+            "Cannot delete course module with ID $cm->id because it does not have a valid activity instance.");
+    }
+
     // Call the delete_instance function, if it returns false throw an exception.
     if (!$deleteinstancefunction($cm->instance)) {
         throw new moodle_exception('cannotdeletemoduleinstance', '', '', null,
             "Cannot delete the module $modulename (instance).");
     }
 
+    // We delete the questions after the activity database is removed,
+    // because questions are referenced via question reference tables
+    // and cannot be deleted while the activities that use them still exist.
     question_delete_activity($cm);
 
     // Remove all module files in case modules forget to do that.
@@ -1370,7 +1380,7 @@ function moveto_module($mod, $section, $beforemod=NULL) {
 function course_get_cm_edit_actions(cm_info $mod, $indent = -1, $sr = null) {
     global $COURSE, $SITE, $CFG;
 
-    \core\deprecation::emit_deprecation_if_present(__FUNCTION__);
+    \core\deprecation::emit_deprecation(__FUNCTION__);
 
     static $str;
 
@@ -1730,7 +1740,7 @@ function move_courses($courseids, $categoryid) {
  * @see core_courseformat\base::get_section_name()
  *
  * @param int|stdClass $courseorid The course to get the section name for (object or just course id)
- * @param int|stdClass $section Section object from database or just field course_sections.section
+ * @param int|stdClass|section_info $section Section object from database or just field course_sections.section
  * @return string Display name that the course format prefers, e.g. "Week 2"
  */
 function get_section_name($courseorid, $section) {
@@ -1762,7 +1772,7 @@ function course_format_uses_sections($format) {
  */
 #[\core\attribute\deprecated(since: '5.0', mdl: 'MDL-82351')]
 function course_format_ajax_support($format) {
-    \core\deprecation::emit_deprecation_if_present(__FUNCTION__);
+    \core\deprecation::emit_deprecation(__FUNCTION__);
     $course = new stdClass();
     $course->format = $format;
     return course_get_format($course)->supports_ajax();

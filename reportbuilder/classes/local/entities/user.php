@@ -58,12 +58,16 @@ class user extends base {
      * @return string[]
      */
     protected function get_default_tables(): array {
-        return [
+        $tables = [
             'user',
             'context',
             'tag_instance',
             'tag',
         ];
+        if (mutenancy_is_active()) {
+            $tables[] = 'tool_mutenancy_tenant';
+        }
+        return $tables;
     }
 
     /**
@@ -76,40 +80,33 @@ class user extends base {
     }
 
     /**
-     * Initialise the entity, add all user fields and all 'visible' user profile fields
+     * Initialise the entity
      *
      * @return base
      */
     public function initialise(): base {
-        $userprofilefields = $this->get_user_profile_fields();
+        $tablealias = $this->get_table_alias('user');
+
+        $userprofilefields = (new user_profile_fields(
+            "{$tablealias}.id",
+            $this->get_entity_name(),
+        ))
+            ->add_joins($this->get_joins());
 
         $columns = array_merge($this->get_all_columns(), $userprofilefields->get_columns());
         foreach ($columns as $column) {
             $this->add_column($column);
         }
 
+        // All the filters defined by the entity can also be used as conditions.
         $filters = array_merge($this->get_all_filters(), $userprofilefields->get_filters());
         foreach ($filters as $filter) {
-            $this->add_filter($filter);
-        }
-
-        $conditions = array_merge($this->get_all_filters(), $userprofilefields->get_filters());
-        foreach ($conditions as $condition) {
-            $this->add_condition($condition);
+            $this
+                ->add_condition($filter)
+                ->add_filter($filter);
         }
 
         return $this;
-    }
-
-    /**
-     * Get user profile fields helper instance
-     *
-     * @return user_profile_fields
-     */
-    protected function get_user_profile_fields(): user_profile_fields {
-        $userprofilefields = new user_profile_fields($this->get_table_alias('user') . '.id', $this->get_entity_name());
-        $userprofilefields->add_joins($this->get_joins());
-        return $userprofilefields;
     }
 
     /**
@@ -317,6 +314,77 @@ class user extends base {
             }
 
             $columns[] = $column;
+        }
+
+        if (mutenancy_is_active()) {
+            $tenanttablealias = $this->get_table_alias('tool_mutenancy_tenant');
+            $columns[] = (new column(
+                'tenant',
+                new lang_string('tenant', 'tool_mutenancy'),
+                $this->get_entity_name()
+            ))
+                ->add_joins($this->get_joins())
+                ->add_join("LEFT JOIN {tool_mutenancy_tenant} {$tenanttablealias} ON {$tenanttablealias}.id = {$usertablealias}.tenantid")
+                ->add_field("{$tenanttablealias}.name", 'tenantname')
+                ->add_field("{$usertablealias}.tenantid", 'tenantid')
+                ->set_is_sortable(true)
+                ->set_disabled_aggregation_all()
+                ->add_callback(static function($value, stdClass $row): string {
+                    if (!$row->tenantid) {
+                        return '';
+                    }
+                    $context = \context_tenant::instance($row->tenantid, IGNORE_MISSING);
+                    if (!$context) {
+                        // This should not happen, the user.tenantid is invalid.
+                        return '';
+                    }
+
+                    $name = format_string($row->tenantname);
+                    if (has_capability('tool/mutenancy:view', $context)) {
+                        $url = new moodle_url('/admin/tool/mutenancy/tenant.php', ['id' => $row->tenantid]);
+                        $name = html_writer::link($url, $name);
+                    }
+                    return $name;
+                });
+
+            $columns[] = (new column(
+                'tenantidnumber',
+                new lang_string('tenant_idnumber', 'tool_mutenancy'),
+                $this->get_entity_name()
+            ))
+                ->add_joins($this->get_joins())
+                ->add_join("LEFT JOIN {tool_mutenancy_tenant} {$tenanttablealias} ON {$tenanttablealias}.id = {$usertablealias}.tenantid")
+                ->add_field("{$tenanttablealias}.idnumber", 'tenantidnumber')
+                ->add_field("{$usertablealias}.tenantid", 'tenantid')
+                ->set_is_sortable(true)
+                ->add_callback(static function($value, stdClass $row): string {
+                    if (!$row->tenantid) {
+                        return '';
+                    }
+                    $context = \context_tenant::instance($row->tenantid, IGNORE_MISSING);
+                    if (!$context) {
+                        // This should not happen, the user.tenantid is invalid.
+                        return '';
+                    }
+
+                    $idnumber = s($row->tenantidnumber);
+                    if (has_capability('tool/mutenancy:view', $context)) {
+                        $url = new moodle_url('/admin/tool/mutenancy/tenant.php', ['id' => $row->tenantid]);
+                        $idnumber = html_writer::link($url, $idnumber);
+                    }
+                    return $idnumber;
+                });
+
+            $columns[] = (new column(
+                'tenantmember',
+                new lang_string('tenant_member', 'tool_mutenancy'),
+                $this->get_entity_name()
+            ))
+                ->add_joins($this->get_joins())
+                ->add_field("(CASE WHEN {$usertablealias}.tenantid IS NULL THEN 0 ELSE 1 END)", 'tenantmember')
+                ->set_is_sortable(true)
+                ->set_type(column::TYPE_BOOLEAN)
+                ->set_callback([format::class, 'boolean_as_text']);
         }
 
         return $columns;
@@ -530,6 +598,39 @@ class user extends base {
             "{$tablealias}.id"
         ))
             ->add_joins($this->get_joins());
+
+        if (mutenancy_is_active()) {
+            $tenanttablealias = $this->get_table_alias('tool_mutenancy_tenant');
+            $filters[] = (new filter(
+                text::class,
+                'tenant',
+                new lang_string('tenant_name', 'tool_mutenancy'),
+                $this->get_entity_name(),
+                "{$tenanttablealias}.name"
+            ))
+                ->add_joins($this->get_joins())
+                ->add_join("LEFT JOIN {tool_mutenancy_tenant} {$tenanttablealias} ON {$tenanttablealias}.id = {$tablealias}.tenantid");
+
+            $tenanttablealias = $this->get_table_alias('tool_mutenancy_tenant');
+            $filters[] = (new filter(
+                text::class,
+                'tenantidnumber',
+                new lang_string('tenant_idnumber', 'tool_mutenancy'),
+                $this->get_entity_name(),
+                "{$tenanttablealias}.idnumber"
+            ))
+                ->add_joins($this->get_joins())
+                ->add_join("LEFT JOIN {tool_mutenancy_tenant} {$tenanttablealias} ON {$tenanttablealias}.id = {$tablealias}.tenantid");
+
+            $filters[] = (new filter(
+                boolean_select::class,
+                'tenantmember',
+                new lang_string('tenant_member', 'tool_mutenancy'),
+                $this->get_entity_name(),
+                "(CASE WHEN {$tablealias}.tenantid IS NULL THEN 0 ELSE 1 END)"
+            ))
+                ->add_joins($this->get_joins());
+        }
 
         return $filters;
     }

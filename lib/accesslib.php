@@ -120,6 +120,8 @@ define('CAP_PROHIBIT', -1000);
 
 /** System context level - only one instance in every system */
 define('CONTEXT_SYSTEM', 10);
+/** Tenant context for tool_mutenancy */
+define('CONTEXT_TENANT', 12);
 /** User context level -  one instance for each user describing what others can do to user */
 define('CONTEXT_USER', 30);
 /** Course category context level - one instance for each category */
@@ -561,6 +563,21 @@ function has_capability($capability, context $context, $user = null, $doanything
                 return true;
             }
             //ok, admin switched role in this context, let's use normal access control rules
+        }
+    }
+
+    if (mutenancy_is_active()) {
+        if (!$userid || isguestuser($userid)) {
+            // Do not allow guests to access tenants.
+            if ($context->tenantid) {
+                return false;
+            }
+        } else if ($context->tenantid) {
+            // Prevent access of tenant members to other tenants.
+            $tenantid = \tool_mutenancy\local\tenancy::get_user_tenantid($userid);
+            if ($tenantid && $tenantid != $context->tenantid) {
+                return false;
+            }
         }
     }
 
@@ -1169,7 +1186,7 @@ function remove_temp_course_roles(context_course $coursecontext) {
  * @return array
  */
 function get_role_archetypes() {
-    return array(
+    $result = array(
         'manager'        => 'manager',
         'coursecreator'  => 'coursecreator',
         'editingteacher' => 'editingteacher',
@@ -1179,6 +1196,13 @@ function get_role_archetypes() {
         'user'           => 'user',
         'frontpage'      => 'frontpage'
     );
+
+    if (mutenancy_is_active()) {
+        $result['tenantmanager'] = 'tenantmanager';
+        $result['tenantuser'] = 'tenantuser';
+    }
+
+    return $result;
 }
 
 /**
@@ -1480,13 +1504,14 @@ function assign_capability($capability, $permission, $roleid, $contextid, $overw
  * @param string $capability the name of the capability
  * @param int $roleid the role id
  * @param int|context $contextid null means all contexts
+ * @param bool $showdebug if true, will show debugging messages
  * @return boolean true or exception
  */
-function unassign_capability($capability, $roleid, $contextid = null) {
+function unassign_capability($capability, $roleid, $contextid = null, bool $showdebug = true) {
     global $DB, $USER;
 
     // Capability must exist.
-    if (!$capinfo = get_capability_info($capability)) {
+    if (!get_capability_info($capability, $showdebug)) {
         throw new coding_exception("Capability '{$capability}' was not found! This has to be fixed in code.");
     }
 
@@ -2147,6 +2172,15 @@ function get_default_capabilities($archetype) {
         return array();
     }
 
+    if (mutenancy_is_active()) {
+        if ($archetype === 'tenantmanager') {
+            return \tool_mutenancy\local\manager::get_default_capabilities();
+        }
+        if ($archetype === 'tenantuser') {
+            return \tool_mutenancy\local\user::get_default_capabilities();
+        }
+    }
+
     $alldefs = array();
     $defaults = array();
     $components = array();
@@ -2240,6 +2274,24 @@ function get_default_role_archetype_allows($type, $archetype) {
             'frontpage'      => array(),
         ),
     );
+
+    if (mutenancy_is_active()) {
+        $defaults['assign']['tenantmanager'] = ['coursecreator', 'editingteacher', 'teacher', 'student'];
+        $defaults['override']['tenantmanager'] = ['coursecreator', 'editingteacher', 'teacher', 'student', 'guest', 'user', 'tenantuser'];
+        $defaults['switch']['tenantmanager'] = ['editingteacher', 'teacher', 'student'];
+        $defaults['view']['tenantmanager'] = ['tenantmanager', 'coursecreator', 'editingteacher', 'teacher', 'student', 'guest', 'user', 'tenantuser'];
+
+        $defaults['override']['manager'][] = 'tenantmanager';
+        $defaults['view']['manager'][] = 'tenantmanager';
+
+        $defaults['assign']['tenantuser'] = [];
+        $defaults['override']['tenantuser'] = [];
+        $defaults['switch']['tenantuser'] = [];
+        $defaults['view']['tenantuser'] = [];
+
+        $defaults['override']['manager'][] = 'tenantuser';
+        $defaults['view']['manager'][] = 'tenantuser';
+    }
 
     if (!isset($defaults[$type][$archetype])) {
         debugging("Unknown type '$type'' or archetype '$archetype''");
@@ -2460,7 +2512,11 @@ function capabilities_cleanup($component, $newcapdef = null) {
                 // Delete from roles.
                 if ($roles = get_roles_with_capability($cachedcap->name)) {
                     foreach ($roles as $role) {
-                        if (!unassign_capability($cachedcap->name, $role->id)) {
+                        if (!unassign_capability(
+                            capability: $cachedcap->name,
+                            roleid: $role->id,
+                            showdebug: false, // Suppress debugging messages in the get_capability_info().
+                        )) {
                             throw new \moodle_exception('cannotunassigncap', 'error', '',
                                 (object)array('cap' => $cachedcap->name, 'role' => $role->name));
                         }
@@ -2595,10 +2651,11 @@ function is_inside_frontpage(context $context) {
 /**
  * Returns capability information (cached)
  *
- * @param string $capabilityname
+ * @param string $capabilityname the capability name.
+ * @param bool $showdebug if true, will show debugging messages.
  * @return ?stdClass object or null if capability not found
  */
-function get_capability_info($capabilityname) {
+function get_capability_info(string $capabilityname, bool $showdebug = true): ?stdClass {
     $caps = get_all_capabilities();
 
     // Check for deprecated capability.
@@ -2608,12 +2665,17 @@ function get_capability_info($capabilityname) {
             if (isset($caps[$deprecatedinfo['replacement']])) {
                 $capabilityname = $deprecatedinfo['replacement'];
             } else {
-                debugging("Capability '{$capabilityname}' was supposed to be replaced with ".
-                    "'{$deprecatedinfo['replacement']}', which does not exist !");
+                if ($showdebug) {
+                    debugging("Capability '{$capabilityname}' was supposed to be replaced with ".
+                        "'{$deprecatedinfo['replacement']}', which does not exist !");
+                }
             }
         }
-        $fullmessage = $deprecatedinfo['fullmessage'];
-        debugging($fullmessage, DEBUG_DEVELOPER);
+
+        if ($showdebug) {
+            $fullmessage = $deprecatedinfo['fullmessage'];
+            debugging($fullmessage, DEBUG_DEVELOPER);
+        }
     }
     if (!isset($caps[$capabilityname])) {
         return null;
@@ -3923,6 +3985,13 @@ function get_users_by_capability(context $context, $capability, $fields = '', $s
         $wherecond[] = "u.id $exsql";
     }
 
+    if (mutenancy_is_active()) {
+        // Prevent tenant members having any capabilities in other tenants.
+        if ($context->tenantid) {
+            $wherecond[] = "(u.tenantid IS NULL OR u.tenantid = {$context->tenantid})";
+        }
+    }
+
     // Collect WHERE conditions and needed joins.
     $where = implode(' AND ', $wherecond);
     if ($where !== '') {
@@ -4578,6 +4647,8 @@ function role_get_name(stdClass $role, $context = null, $rolenamedisplay = ROLEN
             case 'guest':           $original = get_string('guest'); break;
             case 'user':            $original = get_string('authenticateduser'); break;
             case 'frontpage':       $original = get_string('frontpageuser', 'role'); break;
+            case 'tenantmanager':   $original = get_string('role_tenantmanager_name', 'tool_mutenancy'); break;
+            case 'tenantuser':      $original = get_string('role_tenantuser_name', 'tool_mutenancy'); break;
             // We should not get here, the role UI should require the name for custom roles!
             default:                $original = $role->shortname; break;
         }
@@ -4632,6 +4703,8 @@ function role_get_description(stdClass $role) {
         case 'guest':           return get_string('guestdescription');
         case 'user':            return get_string('authenticateduserdescription');
         case 'frontpage':       return get_string('frontpageuserdescription', 'role');
+        case 'tenantmanager':   return get_string('role_tenantmanager_description', 'tool_mutenancy'); break;
+        case 'tenantuser':      return get_string('role_tenantuser_description', 'tool_mutenancy'); break;
         default:                return '';
     }
 }
@@ -5059,6 +5132,7 @@ class_alias(core\context\coursecat::class, 'context_coursecat');
 class_alias(core\context\module::class, 'context_module', true);
 class_alias(core\context\system::class, 'context_system', true);
 class_alias(core\context\user::class, 'context_user', true);
+class_alias(core\context\tenant::class, 'context_tenant', true);
 
 /**
  * Runs get_records select on context table and returns the result

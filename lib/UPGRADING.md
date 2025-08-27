@@ -1,12 +1,42 @@
 # core (subsystem) Upgrade notes
 
-## 5.0+
+## 5.0.2
 
 ### Added
 
+- Add a new method has_valid_group in \core\report_helper that will return true or false depending if the user has a valid group. This is mainly false in case the user is not in any group in SEPARATEGROUPS. Used in report_log and report_loglive
+
+  For more information see [MDL-84464](https://tracker.moodle.org/browse/MDL-84464)
+
+### Changed
+
+- The `\core\attribute\deprecated` attribute constructor `$replacement` parameter now defaults to null, and can be omitted
+
+  For more information see [MDL-84531](https://tracker.moodle.org/browse/MDL-84531)
+- Added a new `\core\deprecation::emit_deprecation()` method which should be used in places where a deprecation is known to occur. This method will throw debugging if no deprecation notice was found, for example:
+  ```php
+  public function deprecated_method(): void {
+      \core\deprecation::emit_deprecation([self::class, __FUNCTION__]);
+  }
+  ```
+
+  For more information see [MDL-85897](https://tracker.moodle.org/browse/MDL-85897)
+
+## 5.0.1
+
+### Added
+
+- - Added is_site_registered_in_hub method in lib/classes/hub/api.php to
+    check if the site is registered or not.
+  - Added get_secret method in lib/classes/hub/registration.php to get site's secret.
+
+  For more information see [MDL-83448](https://tracker.moodle.org/browse/MDL-83448)
 - Added a new optional param to adhoc_task_failed and scheduled_task_failed to allow skipping log finalisation when called from a separate task.
 
   For more information see [MDL-84442](https://tracker.moodle.org/browse/MDL-84442)
+- There is a new `core/page_title` Javascript module for manipulating the current page title
+
+  For more information see [MDL-84804](https://tracker.moodle.org/browse/MDL-84804)
 
 ## 5.0
 
