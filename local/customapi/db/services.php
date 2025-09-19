@@ -26,7 +26,7 @@ $functions = [
         'classpath' => 'local/customapi/externallib.php',
         'description' => 'Add an existing user to a tenant',
         'type' => 'write',
-        'capabilities' => 'tool/mutenancy:admin', 
+        'capabilities' => 'tool/mutenancy:admin',
         'ajax' => true,
     ],
     'local_customapi_get_tenant_roles' => [
@@ -60,16 +60,7 @@ $functions = [
 
 $services = [
     'Custom API for React Integration' => [
-        'functions' => [
-            'local_customapi_create_tenant',
-            'local_customapi_create_user_in_tenant',
-            'local_customapi_add_user_to_tenant',
-            'local_customapi_get_tenant_roles',
-            'local_customapi_get_tenant_courses',
-            'local_customapi_get_tenant_user_courses',
-            'core_role_get_site_roles',
-            'core_enrol_get_users_courses',
-        ],
+        'functions' => array_keys($functions),
         'restrictedusers' => 0,
         'enabled' => 1,
     ],
