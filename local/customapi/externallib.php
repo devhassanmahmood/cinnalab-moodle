@@ -8,19 +8,15 @@ class local_customapi_external extends external_api {
 
     /**
      * Try to load the tool_mutenancy manager class.
-     * Returns instance of manager or null.
      */
     protected static function load_mutenancy_manager() {
         global $CFG;
-
-        // Correct namespace for manager class.
         $managerclass = '\\tool_mutenancy\\local\\manager';
 
         if (class_exists($managerclass)) {
             return new $managerclass();
         }
 
-        // Try loading lib.php.
         $mutenancylib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
         if (file_exists($mutenancylib)) {
             require_once($mutenancylib);
@@ -29,7 +25,6 @@ class local_customapi_external extends external_api {
             }
         }
 
-        // Try including classes/manager.php directly.
         $managerfile = $CFG->dirroot . '/admin/tool/mutenancy/classes/manager.php';
         if (file_exists($managerfile)) {
             require_once($managerfile);
@@ -42,8 +37,7 @@ class local_customapi_external extends external_api {
     }
 
     /**
-     * Helper to detect the tool_mutenancy tenant table name.
-     * Returns the actual table name string if exists, or false.
+     * Detect tenant table.
      */
     protected static function detect_mutenancy_table() {
         global $DB;
@@ -56,9 +50,8 @@ class local_customapi_external extends external_api {
         return false;
     }
 
-    /**
-     * 1. Create Tenant
-     */
+    /* -------------------- 1. Create Tenant -------------------- */
+
     public static function create_tenant_parameters() {
         return new external_function_parameters([
             'domain'       => new external_value(PARAM_TEXT, 'Tenant ID (idnumber)', VALUE_REQUIRED),
@@ -69,28 +62,22 @@ class local_customapi_external extends external_api {
     public static function create_tenant($domain, $company_name) {
         global $DB, $CFG;
 
-        // Validate parameters.
         $params = self::validate_parameters(self::create_tenant_parameters(), compact('domain', 'company_name'));
 
-        // Security: system context, require tenancy admin.
         $context = context_system::instance();
         self::validate_context($context);
         require_capability('tool/mutenancy:admin', $context);
 
-        // Load required libs early to avoid undefined function errors.
         require_once($CFG->dirroot . '/cohort/lib.php');
         require_once($CFG->dirroot . '/course/lib.php');
 
-        // Detect mutenancy availability and manager.
         $manager = self::load_mutenancy_manager();
         $mutenancytable = self::detect_mutenancy_table();
 
-        // If tenant table doesn't exist and manager not present, throw.
         if (empty($manager) && !$mutenancytable) {
             throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
         }
 
-        // If table exists, check duplicate idnumber.
         if ($mutenancytable) {
             $sql = 'SELECT id FROM {' . $mutenancytable . '} WHERE ' . $DB->sql_compare_text('idnumber') . ' = :idnumber';
             if ($DB->record_exists_sql($sql, ['idnumber' => $domain])) {
@@ -98,20 +85,18 @@ class local_customapi_external extends external_api {
             }
         }
 
-        // Create or fetch course category (avoid duplicate idnumber).
         $existingcategory = $DB->get_record('course_categories', ['idnumber' => $domain]);
         if ($existingcategory) {
             $category = core_course_category::get($existingcategory->id);
         } else {
             $categorydata = (object)[
                 'name' => $company_name,
-                'idnumber' => $domain . '_cat', // append to avoid collisions with tenant idnumber
+                'idnumber' => $domain . '_cat',
                 'parent' => 0,
             ];
             $category = core_course_category::create($categorydata);
         }
 
-        // Create cohort for tenant in system context.
         $cohortidnumber = $domain . '_cohort';
         $cohortcontext = context_system::instance()->id;
         if ($existing = $DB->get_record('cohort', ['idnumber' => $cohortidnumber, 'contextid' => $cohortcontext])) {
@@ -128,7 +113,6 @@ class local_customapi_external extends external_api {
             $cohortid = cohort_add_cohort($cohortdata);
         }
 
-        // Create tenant using manager API if available.
         $tenantid = 0;
         if (!empty($manager) && method_exists($manager, 'create_tenant')) {
             $maybe = $manager->create_tenant((object)[
@@ -137,7 +121,6 @@ class local_customapi_external extends external_api {
                 'categoryid' => $category->id,
                 'cohortid' => $cohortid,
             ]);
-            // Normalize response to id.
             if (is_object($maybe) && isset($maybe->id)) {
                 $tenantid = (int)$maybe->id;
             } else if (is_int($maybe)) {
@@ -147,7 +130,6 @@ class local_customapi_external extends external_api {
             }
         }
 
-        // Fallback to direct DB insert if manager didn't give an id.
         if (empty($tenantid)) {
             if (!$mutenancytable) {
                 throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
@@ -172,9 +154,8 @@ class local_customapi_external extends external_api {
         ]);
     }
 
-    /**
-     * 2. Create User Against Tenant
-     */
+    /* -------------------- 2. Create User in Tenant -------------------- */
+
     public static function create_user_in_tenant_parameters() {
         return new external_function_parameters([
             'email' => new external_value(PARAM_EMAIL, 'User email', VALUE_REQUIRED),
@@ -194,22 +175,18 @@ class local_customapi_external extends external_api {
         $context = context_system::instance();
         self::validate_context($context);
 
-        // Capabilities: creating users and tenancy management.
         require_capability('moodle/user:create', $context);
         require_capability('tool/mutenancy:admin', $context);
 
-        // Ensure user lib and accesslib are available.
         require_once($CFG->dirroot . '/user/lib.php');
         require_once($CFG->dirroot . '/lib/accesslib.php');
 
-        // Attempt to load mutenancy manager and table.
         $manager = self::load_mutenancy_manager();
         $mutenancytable = self::detect_mutenancy_table();
         if (empty($manager) && !$mutenancytable) {
             throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
         }
 
-        // Validate tenant exists.
         $tenantobj = null;
         if (!empty($manager) && method_exists($manager, 'get_tenant')) {
             $tenantobj = $manager->get_tenant($tenant);
@@ -220,12 +197,7 @@ class local_customapi_external extends external_api {
             throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
-        // Build user data.
-        $userpassword = $password;
-        if (empty($userpassword)) {
-            // generate secure random password if not provided.
-            $userpassword = generate_custom_password(12);
-        }
+        $userpassword = $password ?: generate_custom_password(12);
 
         $userdata = (object)[
             'username' => $email,
@@ -238,32 +210,15 @@ class local_customapi_external extends external_api {
             'mnethostid' => $CFG->mnet_localhost_id ?? 1,
         ];
 
-        // create user
         $userid = user_create_user($userdata);
 
-        // Allocate to tenant using tenancy API if available.
-        $allocated = false;
-        if (class_exists('\\tool_mutenancy\\tenancy') && method_exists('\\tool_mutenancy\\tenancy', 'allocate_user')) {
-            \tool_mutenancy\tenancy::allocate_user($userid, $tenant);
-            $allocated = true;
-        } else if (!empty($manager) && method_exists($manager, 'allocate_user')) {
-            $manager->allocate_user($userid, $tenant);
-            $allocated = true;
-        } else if ($mutenancytable) {
-            // If no API exists, try to insert mapping directly if table for allocation exists.
-            // Some mutenancy plugins create user->tenant relation table; try common names (best effort).
-            // If you have a specific allocation table, adjust here.
-            // We'll skip direct allocation if we do not know the table structure.
-            $allocated = false;
+        // ✅ Use correct allocation method.
+        if (class_exists('\\tool_mutenancy\\local\\user') && method_exists('\\tool_mutenancy\\local\\user', 'allocate')) {
+            \tool_mutenancy\local\user::allocate($userid, $tenant);
+        } else {
+            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate');
         }
 
-        if (!$allocated) {
-            // not fatal but warn (caller can still have user created)
-            // If your mutenancy requires allocation for functionality, consider throwing.
-            debugging('User was created but not allocated to tenant (no allocation API available).', DEBUG_DEVELOPER);
-        }
-
-        // Assign role in the tenant category context.
         if (empty($tenantobj->categoryid)) {
             throw new moodle_exception('tenantnoconfiguredcategory', 'local_customapi');
         }
@@ -280,9 +235,8 @@ class local_customapi_external extends external_api {
         ]);
     }
 
-    /**
-     * 3. Add Existing User to Tenant
-     */
+    /* -------------------- 3. Add Existing User to Tenant -------------------- */
+
     public static function add_user_to_tenant_parameters() {
         return new external_function_parameters([
             'user_id' => new external_value(PARAM_INT, 'User ID', VALUE_REQUIRED),
@@ -291,7 +245,7 @@ class local_customapi_external extends external_api {
     }
 
     public static function add_user_to_tenant($user_id, $tenant_id) {
-        global $DB, $CFG;
+        global $DB;
 
         self::validate_parameters(self::add_user_to_tenant_parameters(), compact('user_id', 'tenant_id'));
 
@@ -299,38 +253,20 @@ class local_customapi_external extends external_api {
         self::validate_context($context);
         require_capability('tool/mutenancy:admin', $context);
 
-        $manager = self::load_mutenancy_manager();
-        $mutenancytable = self::detect_mutenancy_table();
-        if (empty($manager) && !$mutenancytable) {
-            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
-        }
-
-        // Validate tenant exists.
-        $tenantobj = null;
-        if (!empty($manager) && method_exists($manager, 'get_tenant')) {
-            $tenantobj = $manager->get_tenant($tenant_id);
-        } else if ($mutenancytable) {
-            $tenantobj = $DB->get_record($mutenancytable, ['id' => $tenant_id]);
-        }
-        if (!$tenantobj) {
-            throw new moodle_exception('tenantnotfound', 'local_customapi');
-        }
-
         if (!$DB->record_exists('user', ['id' => $user_id, 'deleted' => 0])) {
             throw new moodle_exception('usernotfound', 'local_customapi');
         }
 
-        $allocated = false;
-        if (class_exists('\\tool_mutenancy\\tenancy') && method_exists('\\tool_mutenancy\\tenancy', 'allocate_user')) {
-            \tool_mutenancy\tenancy::allocate_user($user_id, $tenant_id);
-            $allocated = true;
-        } else if (!empty($manager) && method_exists($manager, 'allocate_user')) {
-            $manager->allocate_user($user_id, $tenant_id);
-            $allocated = true;
+        $tenantobj = $DB->get_record(self::detect_mutenancy_table(), ['id' => $tenant_id]);
+        if (!$tenantobj) {
+            throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
-        if (!$allocated) {
-            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate_user');
+        // ✅ Correct static allocation call.
+        if (class_exists('\\tool_mutenancy\\local\\user') && method_exists('\\tool_mutenancy\\local\\user', 'allocate')) {
+            \tool_mutenancy\local\user::allocate($user_id, $tenant_id);
+        } else {
+            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate');
         }
 
         return ['success' => true];
