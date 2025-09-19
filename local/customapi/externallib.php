@@ -289,7 +289,10 @@ class local_customapi_external extends external_api {
 
     public static function get_tenant_roles($tenant_id) {
         global $CFG, $DB;
+
+        // Load necessary libraries
         require_once($CFG->libdir . '/accesslib.php');
+        require_once($CFG->dirroot . '/lib/role/locallib.php');
 
         self::validate_parameters(self::get_tenant_roles_parameters(), compact('tenant_id'));
 
@@ -303,34 +306,39 @@ class local_customapi_external extends external_api {
             throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
         }
 
-        // Get tenant object
-        $tenantobj = null;
+        // Fetch tenant object
         if (!empty($manager) && method_exists($manager, 'get_tenant')) {
             $tenantobj = $manager->get_tenant($tenant_id);
         } else if ($mutenancytable) {
             $tenantobj = $DB->get_record($mutenancytable, ['id' => $tenant_id]);
         }
+
         if (!$tenantobj) {
             throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
-        // Get context of tenant category
         $contextcat = context_coursecat::instance($tenantobj->categoryid);
 
-        // ✅ Use role_assignable_selector instead of deprecated role_get_assignable_roles
-        $roles = \core_role\helper::get_assignable_roles($contextcat);
+        // Fetch assignable roles using core_role\helper (Moodle 5.0)
+        if (class_exists('\\core_role\\helper') && method_exists('\\core_role\\helper', 'get_assignable_roles')) {
+            $roles = \core_role\helper::get_assignable_roles($contextcat);
+        } else {
+            // Fallback for any older versions or missing class
+            $roles = role_get_names($contextcat, ROLENAME_ALIAS, true);
+        }
 
         $result = [];
-        foreach ($roles as $id => $name) {
-            $result[] = [
-                'id' => (int)$id,
-                'name' => $name
-            ];
+        foreach ($roles as $id => $roleinfo) {
+            if (is_object($roleinfo)) {
+                $name = $roleinfo->localname ?? $roleinfo->name;
+            } else {
+                $name = $roleinfo;
+            }
+            $result[] = ['id' => (int)$id, 'name' => $name];
         }
 
         return $result;
     }
-
 
     public static function get_tenant_roles_returns() {
         return new external_multiple_structure(
@@ -340,6 +348,7 @@ class local_customapi_external extends external_api {
             ])
         );
     }
+
 
     /**
      * 5. Fetch Courses by Tenant
