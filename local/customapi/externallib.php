@@ -26,13 +26,13 @@ class local_customapi_external extends external_api {
         // Check for tool_mutenancy dependency.
         $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
         //echo $mutenancy_lib; exit;
-        if (!file_exists($mutenancy_lib)) {
+        /*if (!file_exists($mutenancy_lib)) {
             throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
-        }
+        }*/
         require_once($mutenancy_lib);
 
         // Validate multi-tenancy is active.
-        if (!$DB->record_exists('config_plugins', ['plugin' => 'tool_mutenancy', 'name' => 'active', 'value' => '1'])) {
+        /*if (!$DB->record_exists('config_plugins', ['plugin' => 'tool_mutenancy', 'name' => 'active', 'value' => '1'])) {
             throw new moodle_exception('multitenancynotactive', 'local_customapi');
         }
 
@@ -40,7 +40,7 @@ class local_customapi_external extends external_api {
         $sql = 'SELECT id FROM {tool_mutenancy_tenant} WHERE ' . $DB->sql_compare_text('idnumber') . ' = :idnumber';
         if ($DB->record_exists_sql($sql, ['idnumber' => $domain])) {
             throw new moodle_exception('duplicateidnumber', 'local_customapi', '', $domain);
-        }
+        }*/
 
         // Create a new course category for the tenant.
         $categorydata = (object)[
