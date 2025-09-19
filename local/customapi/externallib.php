@@ -384,16 +384,32 @@ class local_customapi_external extends external_api {
             throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
-        $coursesdata = core_course_get_courses_by_field('category', $tenantobj->categoryid);
+        if (empty($tenantobj->categoryid)) {
+            throw new moodle_exception('invalidtenantcategory', 'local_customapi');
+        }
+
+        // Replacement for core_course_get_courses_by_field()
+        require_once($CFG->dirroot . '/course/classes/category.php');
+        $category = \core_course_category::get($tenantobj->categoryid, IGNORE_MISSING);
+
+        if (!$category) {
+            throw new moodle_exception('invalidcategory', 'local_customapi');
+        }
+
+        $courses = $category->get_courses([
+            'recursive' => false,  // only direct courses in this category
+            'limit' => 0,
+            'offset' => 0,
+            'sort' => ['fullname' => 1]
+        ]);
+
         $result = [];
-        if (!empty($coursesdata->courses)) {
-            foreach ($coursesdata->courses as $course) {
-                $result[] = [
-                    'id' => (int)$course->id,
-                    'fullname' => $course->fullname,
-                    'shortname' => $course->shortname,
-                ];
-            }
+        foreach ($courses as $course) {
+            $result[] = [
+                'id' => (int)$course->id,
+                'fullname' => $course->fullname,
+                'shortname' => $course->shortname,
+            ];
         }
         return $result;
     }
