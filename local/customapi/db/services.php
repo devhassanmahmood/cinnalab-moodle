@@ -8,7 +8,7 @@ $functions = [
         'classpath' => 'local/customapi/externallib.php',
         'description' => 'Create a new tenant',
         'type' => 'write',
-        'capabilities' => 'tool/mutenancy:admin', // Changed from tool/mutenancy:manage
+        'capabilities' => 'tool/mutenancy:admin',
         'ajax' => true,
     ],
     'local_customapi_create_user_in_tenant' => [
@@ -17,7 +17,7 @@ $functions = [
         'classpath' => 'local/customapi/externallib.php',
         'description' => 'Create a user and assign to tenant with role',
         'type' => 'write',
-        'capabilities' => 'moodle/user:create,tool/mutenancy:admin', // Changed tool/mutenancy:manage
+        'capabilities' => 'moodle/user:create,tool/mutenancy:admin',
         'ajax' => true,
     ],
     'local_customapi_add_user_to_tenant' => [
@@ -26,7 +26,7 @@ $functions = [
         'classpath' => 'local/customapi/externallib.php',
         'description' => 'Add an existing user to a tenant',
         'type' => 'write',
-        'capabilities' => 'tool/mutenancy:admin', // Changed from tool/mutenancy:manage
+        'capabilities' => 'tool/mutenancy:admin', 
         'ajax' => true,
     ],
     'local_customapi_get_tenant_roles' => [

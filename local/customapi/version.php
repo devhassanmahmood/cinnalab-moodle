@@ -1,7 +1,7 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2025091801; // YYYYMMDDHH format
+$plugin->version = 2025091802; // YYYYMMDDHH format
 $plugin->requires = 2023042400; // Minimum Moodle version (e.g., 4.2)
 $plugin->component = 'local_customapi';
 $plugin->name = 'Custom API';
