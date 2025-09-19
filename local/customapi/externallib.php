@@ -56,13 +56,16 @@ class local_customapi_external extends external_api {
             'idnumber' => $domain,
             'categoryid' => $category->id,
         ];
-        $manager = new tool_mutenancy\manager();
-        if (!method_exists($manager, 'create_tenant')) {
-            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'create_tenant');
-        }
-        $tenant = $manager->create_tenant($tenantdata);
+        $tenantdata = (object)[
+           'name' => $company_name,
+           'idnumber' => $domain,
+           'categoryid' => $category->id,
+           'timecreated' => time(),
+           'timemodified' => time(),
+       ];
+       $tenant_id = $DB->insert_record('tool_mutenancy_tenant', $tenantdata);
 
-        return ['tenant_id' => $tenant->id];
+        return ['tenant_id' => $tenant_id];
     }
 
     public static function create_tenant_returns() {
