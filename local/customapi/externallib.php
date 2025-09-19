@@ -25,6 +25,7 @@ class local_customapi_external extends external_api {
 
         // Check for tool_mutenancy dependency.
         $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
+        echo $mutenancy_lib; exit;
         if (!file_exists($mutenancy_lib)) {
             throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
         }
