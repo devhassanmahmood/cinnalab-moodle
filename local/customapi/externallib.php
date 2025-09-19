@@ -21,9 +21,24 @@ class local_customapi_external extends external_api {
 
         // Require tenant management capability.
         self::validate_context(context_system::instance());
-        require_capability('tool/mutenancy:manage', context_system::instance());
+        require_capability('tool/mutenancy:admin', context_system::instance());
 
-        require_once($CFG->dirroot . '/admin/tool/mutenancy/lib.php');
+        // Check for tool_mutenancy dependency.
+        $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
+        if (!file_exists($mutenancy_lib)) {
+            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+        }
+        require_once($mutenancy_lib);
+
+        // Validate multi-tenancy is active.
+        if (!class_exists('tool_mutenancy\tenancy') || !method_exists('tool_mutenancy\tenancy', 'is_active') || !tool_mutenancy\tenancy::is_active()) {
+            throw new moodle_exception('multitenancynotactive', 'local_customapi');
+        }
+
+        // Validate unique idnumber.
+        if ($DB->record_exists('tool_mutenancy_tenant', ['idnumber' => $domain])) {
+            throw new moodle_exception('duplicateidnumber', 'local_customapi', '', $domain);
+        }
 
         // Create a new course category for the tenant.
         $categorydata = (object)[
@@ -38,10 +53,12 @@ class local_customapi_external extends external_api {
             'name' => $company_name,
             'idnumber' => $domain,
             'categoryid' => $category->id,
-            // Add other defaults as needed (e.g., description).
         ];
         $manager = new tool_mutenancy\manager();
-        $tenant = $manager->create_tenant($tenantdata); // Adjust method name if different.
+        if (!method_exists($manager, 'create_tenant')) {
+            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'create_tenant');
+        }
+        $tenant = $manager->create_tenant($tenantdata);
 
         return ['tenant_id' => $tenant->id];
     }
@@ -70,15 +87,20 @@ class local_customapi_external extends external_api {
         // Require capabilities.
         self::validate_context(context_system::instance());
         require_capability('moodle/user:create', context_system::instance());
-        require_capability('tool/mutenancy:manage', context_system::instance());
+        require_capability('tool/mutenancy:admin', context_system::instance());
 
+        // Check for tool_mutenancy dependency.
+        $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
+        if (!file_exists($mutenancy_lib)) {
+            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+        }
+        require_once($mutenancy_lib);
         require_once($CFG->dirroot . '/user/lib.php');
-        require_once($CFG->dirroot . '/admin/tool/mutenancy/lib.php');
 
         // Validate tenant exists.
         $manager = new tool_mutenancy\manager();
-        if (!$manager->get_tenant($tenant)) {
-            throw new moodle_exception('Tenant not found');
+        if (!method_exists($manager, 'get_tenant') || !$manager->get_tenant($tenant)) {
+            throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
         // Create user.
@@ -87,7 +109,7 @@ class local_customapi_external extends external_api {
             'email' => $email,
             'firstname' => 'Tenant',
             'lastname' => 'Admin',
-            'password' => generate_custom_password(12), // Implement secure password generation.
+            'password' => generate_custom_password(12),
             'auth' => 'manual',
             'confirmed' => 1,
             'mnethostid' => $CFG->mnet_localhost_id,
@@ -95,7 +117,10 @@ class local_customapi_external extends external_api {
         $userid = user_create_user($userdata);
 
         // Allocate to tenant.
-        tool_mutenancy\tenancy::allocate_user($userid, $tenant); // Adjust method name if different.
+        if (!class_exists('tool_mutenancy\tenancy') || !method_exists('tool_mutenancy\tenancy', 'allocate_user')) {
+            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate_user');
+        }
+        tool_mutenancy\tenancy::allocate_user($userid, $tenant);
 
         // Assign role in tenant’s course category context.
         $tenant = $manager->get_tenant($tenant);
@@ -126,20 +151,28 @@ class local_customapi_external extends external_api {
         self::validate_parameters(self::add_user_to_tenant_parameters(), compact('user_id', 'tenant_id'));
 
         self::validate_context(context_system::instance());
-        require_capability('tool/mutenancy:manage', context_system::instance());
+        require_capability('tool/mutenancy:admin', context_system::instance());
 
-        require_once($CFG->dirroot . '/admin/tool/mutenancy/lib.php');
+        // Check for tool_mutenancy dependency.
+        $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
+        if (!file_exists($mutenancy_lib)) {
+            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+        }
+        require_once($mutenancy_lib);
 
         // Validate tenant and user.
         $manager = new tool_mutenancy\manager();
-        if (!$manager->get_tenant($tenant_id)) {
-            throw new moodle_exception('Tenant not found');
+        if (!method_exists($manager, 'get_tenant') || !$manager->get_tenant($tenant_id)) {
+            throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
         if (!$DB->record_exists('user', ['id' => $user_id, 'deleted' => 0])) {
-            throw new moodle_exception('User not found');
+            throw new moodle_exception('usernotfound', 'local_customapi');
         }
 
-        tool_mutenancy\tenancy::allocate_user($user_id, $tenant_id); // Adjust method name if different.
+        if (!class_exists('tool_mutenancy\tenancy') || !method_exists('tool_mutenancy\tenancy', 'allocate_user')) {
+            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate_user');
+        }
+        tool_mutenancy\tenancy::allocate_user($user_id, $tenant_id);
 
         return ['success' => true];
     }
@@ -165,12 +198,15 @@ class local_customapi_external extends external_api {
         self::validate_context(context_system::instance());
         require_capability('moodle/role:manage', context_system::instance());
 
-        require_once($CFG->dirroot . '/admin/tool/mutenancy/lib.php');
+        $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
+        if (!file_exists($mutenancy_lib)) {
+            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+        }
+        require_once($mutenancy_lib);
 
         $manager = new tool_mutenancy\manager();
-        $tenant = $manager->get_tenant($tenant_id);
-        if (!$tenant) {
-            throw new moodle_exception('Tenant not found');
+        if (!method_exists($manager, 'get_tenant') || !$tenant = $manager->get_tenant($tenant_id)) {
+            throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
         $context = context_coursecat::instance($tenant->categoryid);
@@ -207,12 +243,15 @@ class local_customapi_external extends external_api {
         self::validate_context(context_system::instance());
         require_capability('moodle/course:view', context_system::instance());
 
-        require_once($CFG->dirroot . '/admin/tool/mutenancy/lib.php');
+        $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
+        if (!file_exists($mutenancy_lib)) {
+            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+        }
+        require_once($mutenancy_lib);
 
         $manager = new tool_mutenancy\manager();
-        $tenant = $manager->get_tenant($tenant_id);
-        if (!$tenant) {
-            throw new moodle_exception('Tenant not found');
+        if (!method_exists($manager, 'get_tenant') || !$tenant = $manager->get_tenant($tenant_id)) {
+            throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
         $courses = core_course_get_courses_by_field('category', $tenant->categoryid);
@@ -254,20 +293,23 @@ class local_customapi_external extends external_api {
         self::validate_context(context_system::instance());
         require_capability('moodle/course:view', context_system::instance());
 
-        require_once($CFG->dirroot . '/admin/tool/mutenancy/lib.php');
+        $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
+        if (!file_exists($mutenancy_lib)) {
+            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+        }
+        require_once($mutenancy_lib);
 
         // Validate tenant and user.
         $manager = new tool_mutenancy\manager();
-        if (!$manager->get_tenant($tenant_id)) {
-            throw new moodle_exception('Tenant not found');
+        if (!method_exists($manager, 'get_tenant') || !$manager->get_tenant($tenant_id)) {
+            throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
         if (!$DB->record_exists('user', ['id' => $user_id, 'deleted' => 0])) {
-            throw new moodle_exception('User not found');
+            throw new moodle_exception('usernotfound', 'local_customapi');
         }
 
-        // Validate user in tenant.
-        if (tool_mutenancy\tenancy::get_user_tenant($user_id) != $tenant_id) {
-            throw new moodle_exception('User not in tenant');
+        if (!class_exists('tool_mutenancy\tenancy') || !method_exists('tool_mutenancy\tenancy', 'get_user_tenant') || tool_mutenancy\tenancy::get_user_tenant($user_id) != $tenant_id) {
+            throw new moodle_exception('usernotintenant', 'local_customapi');
         }
 
         $courses = enrol_get_users_courses($user_id);
