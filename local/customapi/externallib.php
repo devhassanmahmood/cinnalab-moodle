@@ -16,7 +16,7 @@ class local_customapi_external extends external_api {
     }
 
     public static function create_tenant($domain, $company_name) {
-        global $DB;
+        global $DB, $CFG;
         self::validate_parameters(self::create_tenant_parameters(), compact('domain', 'company_name'));
 
         // Require tenant management capability.
