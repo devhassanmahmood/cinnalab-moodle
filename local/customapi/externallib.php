@@ -25,7 +25,7 @@ class local_customapi_external extends external_api {
 
         // Check for tool_mutenancy dependency.
         $mutenancy_lib = $CFG->dirroot . '/admin/tool/mutenancy/lib.php';
-        echo $mutenancy_lib; exit;
+        //echo $mutenancy_lib; exit;
         if (!file_exists($mutenancy_lib)) {
             throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
         }
@@ -82,7 +82,7 @@ class local_customapi_external extends external_api {
     }
 
     public static function create_user_in_tenant($email, $tenant, $role_id) {
-        global $DB;
+        global $DB, $CFG;
         self::validate_parameters(self::create_user_in_tenant_parameters(), compact('email', 'tenant', 'role_id'));
 
         // Require capabilities.
@@ -148,7 +148,7 @@ class local_customapi_external extends external_api {
     }
 
     public static function add_user_to_tenant($user_id, $tenant_id) {
-        global $DB;
+        global $DB, $CFG;
         self::validate_parameters(self::add_user_to_tenant_parameters(), compact('user_id', 'tenant_id'));
 
         self::validate_context(context_system::instance());
@@ -194,6 +194,7 @@ class local_customapi_external extends external_api {
     }
 
     public static function get_tenant_roles($tenant_id) {
+        global $CFG;
         self::validate_parameters(self::get_tenant_roles_parameters(), compact('tenant_id'));
 
         self::validate_context(context_system::instance());
@@ -239,6 +240,7 @@ class local_customapi_external extends external_api {
     }
 
     public static function get_tenant_courses($tenant_id) {
+        global $CFG;
         self::validate_parameters(self::get_tenant_courses_parameters(), compact('tenant_id'));
 
         self::validate_context(context_system::instance());
@@ -288,7 +290,7 @@ class local_customapi_external extends external_api {
     }
 
     public static function get_tenant_user_courses($tenant_id, $user_id) {
-        global $DB;
+        global $DB, $CFG;
         self::validate_parameters(self::get_tenant_user_courses_parameters(), compact('tenant_id', 'user_id'));
 
         self::validate_context(context_system::instance());
