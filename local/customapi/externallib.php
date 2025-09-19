@@ -292,7 +292,7 @@ class local_customapi_external extends external_api {
 
         // Load necessary libraries
         require_once($CFG->libdir . '/accesslib.php');
-        require_once($CFG->dirroot . '/lib/role/locallib.php');
+       // require_once($CFG->dirroot . '/lib/role/locallib.php');
 
         self::validate_parameters(self::get_tenant_roles_parameters(), compact('tenant_id'));
 
