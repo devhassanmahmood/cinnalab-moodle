@@ -37,7 +37,8 @@ class local_customapi_external extends external_api {
         }
 
         // Validate unique idnumber.
-        if ($DB->record_exists('tool_mutenancy_tenant', ['idnumber' => $domain])) {
+        $sql = 'SELECT id FROM {tool_mutenancy_tenant} WHERE ' . $DB->sql_compare_text('idnumber') . ' = :idnumber';
+        if ($DB->record_exists_sql($sql, ['idnumber' => $domain])) {
             throw new moodle_exception('duplicateidnumber', 'local_customapi', '', $domain);
         }
 
