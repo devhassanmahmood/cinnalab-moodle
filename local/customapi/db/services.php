@@ -8,7 +8,8 @@ $functions = [
         'classpath' => 'local/customapi/externallib.php',
         'description' => 'Create a new tenant',
         'type' => 'write',
-        'capabilities' => 'tool/mutenancy:manage',
+        'capabilities' => 'tool/mutenancy:admin', // Changed from tool/mutenancy:manage
+        'ajax' => true,
     ],
     'local_customapi_create_user_in_tenant' => [
         'classname' => 'local_customapi_external',
@@ -16,7 +17,8 @@ $functions = [
         'classpath' => 'local/customapi/externallib.php',
         'description' => 'Create a user and assign to tenant with role',
         'type' => 'write',
-        'capabilities' => 'moodle/user:create,tool/mutenancy:manage',
+        'capabilities' => 'moodle/user:create,tool/mutenancy:admin', // Changed tool/mutenancy:manage
+        'ajax' => true,
     ],
     'local_customapi_add_user_to_tenant' => [
         'classname' => 'local_customapi_external',
@@ -24,7 +26,8 @@ $functions = [
         'classpath' => 'local/customapi/externallib.php',
         'description' => 'Add an existing user to a tenant',
         'type' => 'write',
-        'capabilities' => 'tool/mutenancy:manage',
+        'capabilities' => 'tool/mutenancy:admin', // Changed from tool/mutenancy:manage
+        'ajax' => true,
     ],
     'local_customapi_get_tenant_roles' => [
         'classname' => 'local_customapi_external',
@@ -33,6 +36,7 @@ $functions = [
         'description' => 'Fetch assignable roles for a tenant',
         'type' => 'read',
         'capabilities' => 'moodle/role:manage',
+        'ajax' => true,
     ],
     'local_customapi_get_tenant_courses' => [
         'classname' => 'local_customapi_external',
@@ -41,6 +45,7 @@ $functions = [
         'description' => 'Fetch courses for a tenant',
         'type' => 'read',
         'capabilities' => 'moodle/course:view',
+        'ajax' => true,
     ],
     'local_customapi_get_tenant_user_courses' => [
         'classname' => 'local_customapi_external',
@@ -49,6 +54,7 @@ $functions = [
         'description' => 'Fetch courses for a user in a tenant',
         'type' => 'read',
         'capabilities' => 'moodle/course:view',
+        'ajax' => true,
     ],
 ];
 
@@ -61,8 +67,8 @@ $services = [
             'local_customapi_get_tenant_roles',
             'local_customapi_get_tenant_courses',
             'local_customapi_get_tenant_user_courses',
-            'core_role_get_site_roles', // Include existing core function
-            'core_enrol_get_users_courses', // Include existing core function
+            'core_role_get_site_roles',
+            'core_enrol_get_users_courses',
         ],
         'restrictedusers' => 0,
         'enabled' => 1,
