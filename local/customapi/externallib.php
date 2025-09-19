@@ -288,7 +288,8 @@ class local_customapi_external extends external_api {
     }
 
     public static function get_tenant_roles($tenant_id) {
-        global $CFG;
+        global $CFG, $DB;
+        require_once($CFG->libdir . '/accesslib.php');
 
         self::validate_parameters(self::get_tenant_roles_parameters(), compact('tenant_id'));
 
@@ -307,22 +308,29 @@ class local_customapi_external extends external_api {
         if (!empty($manager) && method_exists($manager, 'get_tenant')) {
             $tenantobj = $manager->get_tenant($tenant_id);
         } else if ($mutenancytable) {
-            global $DB;
             $tenantobj = $DB->get_record($mutenancytable, ['id' => $tenant_id]);
         }
         if (!$tenantobj) {
             throw new moodle_exception('tenantnotfound', 'local_customapi');
         }
 
+        // Get context of tenant category
         $contextcat = context_coursecat::instance($tenantobj->categoryid);
-        $roles = role_get_assignable_roles($contextcat);
+
+        // ✅ Use role_assignable_selector instead of deprecated role_get_assignable_roles
+        $roles = \core_role\helper::get_assignable_roles($contextcat);
 
         $result = [];
         foreach ($roles as $id => $name) {
-            $result[] = ['id' => (int)$id, 'name' => $name];
+            $result[] = [
+                'id' => (int)$id,
+                'name' => $name
+            ];
         }
+
         return $result;
     }
+
 
     public static function get_tenant_roles_returns() {
         return new external_multiple_structure(
