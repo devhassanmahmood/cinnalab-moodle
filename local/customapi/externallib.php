@@ -50,19 +50,24 @@ class local_customapi_external extends external_api {
         ];
         $category = core_course_category::create($categorydata);
 
+        $cohortdata = (object)[
+            'name' => $company_name . ' Cohort',
+            'idnumber' => $domain . '_cohort',
+            'contextid' => context_system::instance()->id,
+            'description' => 'Cohort for tenant ' . $company_name,
+            'timecreated' => time(),
+        ];
+        $cohortid = cohort_add_cohort($cohortdata);
+
         // Create the tenant.
         $tenantdata = (object)[
             'name' => $company_name,
             'idnumber' => $domain,
             'categoryid' => $category->id,
+            'cohortid' => $cohortid,
+            'timecreated' => time(),
+            'timemodified' => time(),
         ];
-        $tenantdata = (object)[
-           'name' => $company_name,
-           'idnumber' => $domain,
-           'categoryid' => $category->id,
-           'timecreated' => time(),
-           'timemodified' => time(),
-       ];
        $tenant_id = $DB->insert_record('tool_mutenancy_tenant', $tenantdata);
 
         return ['tenant_id' => $tenant_id];
