@@ -19,6 +19,7 @@
 # Temporary files including undo
 *~
 #
+/__123131config.php
 /config.php
 /tags
 /TAGS
@@ -55,6 +56,9 @@ moodle-plugin-ci.phar
 /jsdoc
 /admin/tool/componentlibrary/docs
 /admin/tool/componentlibrary/hugo/site/data/my-index.json
+/admin/tool/mulib/
+/admin/tool/mutenancy/
+/patch/
 .hugo_build.lock
 phpcs.xml
 jsconfig.json
