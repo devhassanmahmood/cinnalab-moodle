@@ -50,13 +50,17 @@ class local_customapi_external extends external_api {
         }
 
         // 1) Create a course category for the tenant.
-        $categorydata = (object)[
-            'name'     => $company_name,
-            'idnumber' => $domain,
-            'parent'   => 0,
-        ];
-        // core_course_category::create will throw if invalid.
-        $category = core_course_category::create($categorydata);
+        $existingcategory = $DB->get_record('course_categories', ['idnumber' => $domain]);
+        if ($existingcategory) {
+            $category = core_course_category::get($existingcategory->id);
+        } else {
+            $categorydata = (object)[
+                'name' => $company_name,
+                'idnumber' => $domain,
+                'parent' => 0,
+            ];
+            $category = core_course_category::create($categorydata);
+        }
 
         // 2) Create a cohort for tenant (system context by default).
         // cohort_add_cohort expects an object with: name, idnumber, contextid, description, descriptionformat, visible
