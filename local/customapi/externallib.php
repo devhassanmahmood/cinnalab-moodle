@@ -32,7 +32,7 @@ class local_customapi_external extends external_api {
         require_once($mutenancy_lib);
 
         // Validate multi-tenancy is active.
-        if (!class_exists('tool_mutenancy\tenancy') || !method_exists('tool_mutenancy\tenancy', 'is_active') || !tool_mutenancy\tenancy::is_active()) {
+        if (!$DB->record_exists('config_plugins', ['plugin' => 'tool_mutenancy', 'name' => 'active', 'value' => '1'])) {
             throw new moodle_exception('multitenancynotactive', 'local_customapi');
         }
 
