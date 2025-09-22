@@ -521,6 +521,8 @@ class local_customapi_external extends external_api {
                 'id' => new external_value(PARAM_INT, 'Course ID'),
                 'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
                 'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                'progress' => new external_value(PARAM_FLOAT, 'User Progress'),
+                'status' => new external_value(PARAM_TEXT, 'User completion status'),
             ])
         );
     }
