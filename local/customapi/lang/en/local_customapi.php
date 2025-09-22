@@ -38,3 +38,5 @@ $string['local_customapi_get_tenant_user_courses:desc'] = 'Fetches all courses f
 $string['tenantnotfound'] = 'The specified tenant was not found.';
 $string['usernotfound'] = 'The specified user was not found.';
 $string['usernotintenant'] = 'The user is not allocated to the specified tenant.';
+$string['invalidtoken'] = 'Invalid Token';
+$string['nouserid'] = 'No user found by matching with user id from LMS';

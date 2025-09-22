@@ -437,6 +437,8 @@ class local_customapi_external extends external_api {
     public static function get_tenant_user_courses($tenant_id, $user_id) {
         global $DB, $CFG;
 
+        require_once($CFG->libdir . '/completionlib.php');
+
         self::validate_parameters(self::get_tenant_user_courses_parameters(), compact('tenant_id', 'user_id'));
 
         $context = context_system::instance();
@@ -475,15 +477,43 @@ class local_customapi_external extends external_api {
 
         $courses = enrol_get_users_courses($user_id);
         $result = [];
+
         foreach ($courses as $course) {
+            $progress = null;
+            $status = 'not_started';
+
+            // Load completion info for this course.
+            $completion = new completion_info($course);
+
+            if ($completion->is_enabled()) {
+                $percentage = \core_completion\progress::get_course_progress_percentage($course, $user_id);
+                if ($percentage === null) {
+                    $progress = 0;
+                } else {
+                    $progress = (int)round($percentage);
+                }
+
+                if ($progress == 0) {
+                    $status = 'not_started';
+                } else if ($progress > 0 && $progress < 100) {
+                    $status = 'in_progress';
+                } else if ($progress == 100) {
+                    $status = 'completed';
+                }
+            }
+
             $result[] = [
                 'id' => (int)$course->id,
                 'fullname' => $course->fullname,
                 'shortname' => $course->shortname,
+                'progress' => $progress,
+                'status' => $status,
             ];
         }
+
         return $result;
     }
+
 
     public static function get_tenant_user_courses_returns() {
         return new external_multiple_structure(
