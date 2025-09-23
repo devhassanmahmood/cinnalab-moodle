@@ -347,6 +347,7 @@ class local_customapi_external extends external_api {
             new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'Role ID'),
                 'name' => new external_value(PARAM_TEXT, 'Role name'),
+                'slug' => new external_value(PARAM_TEXT, 'Role Slug'),
             ])
         );
     }
