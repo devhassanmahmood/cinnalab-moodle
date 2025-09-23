@@ -330,11 +330,13 @@ class local_customapi_external extends external_api {
         $result = [];
         foreach ($roles as $id => $roleinfo) {
             if (is_object($roleinfo)) {
-                $name = $roleinfo->localname ?? $roleinfo->name;
+                $name = $roleinfo->name ?? $roleinfo->name;
+                $shortname = $roleinfo->shortname ?? $roleinfo->shortname;
             } else {
-                $name = $roleinfo;
+                $name = $roleinfo->name;
+                $shortname = $roleinfo->shortname;
             }
-            $result[] = ['id' => (int)$id, 'name' => $name];
+            $result[] = ['id' => (int)$id, 'name' => $name, 'slug' => $shortname];
         }
 
         return $result;
