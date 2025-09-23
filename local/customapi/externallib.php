@@ -329,14 +329,15 @@ class local_customapi_external extends external_api {
 
         $result = [];
         foreach ($roles as $id => $roleinfo) {
+            $role = $DB->get_record('role', ['id' => $id], 'id, shortname');
             if (is_object($roleinfo)) {
-                $name = $roleinfo->name ?? $roleinfo->name;
-                $shortname = $roleinfo->shortname ?? $roleinfo->shortname;
+                $name = $roleinfo->localname ?? $roleinfo->name;
+                $slug = $role->shortname;
             } else {
-                $name = $roleinfo->name;
-                $shortname = $roleinfo->shortname;
+                $name = $roleinfo;
+                $slug = $role->shortname;
             }
-            $result[] = ['id' => (int)$id, 'name' => $name, 'slug' => $shortname];
+            $result[] = ['id' => (int)$id, 'name' => $name, 'slug' => $slug];
         }
 
         return $result;
@@ -347,7 +348,7 @@ class local_customapi_external extends external_api {
             new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'Role ID'),
                 'name' => new external_value(PARAM_TEXT, 'Role name'),
-                'slug' => new external_value(PARAM_TEXT, 'Role Slug'),
+                'slug' => new external_value(PARAM_TEXT, 'Slug name'),
             ])
         );
     }
