@@ -1,49 +1,45 @@
 <?php
 require('../../config.php');
-require_once($CFG->libdir.'/authlib.php');
 require_once($CFG->dirroot . '/local/customapi/classes/JWT.php');
-
-
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// 1. Get token from URL
+// Get token from URL or manually
 $token = required_param('token', PARAM_RAW);
+$token = urldecode($token); // important if passed via URL
 
-// 2. Decode token
-//$secretkey = $CFG->jwt_secret ?? 'change_this_secret_key';
 $secretkey = '7c3f2a1bb4d0b8b2f6e6a8fcb5a937ec0f85e4a52a1b2d76a16e3a92c37d4f7d';
 
 try {
-    //$decoded = JWT::decode($token, new Key($secretkey, 'HS256'));
-    $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secretkey, 'HS256'));
+    // Split token
+    list($headb64, $bodyb64, $sigb64) = explode('.', $token);
+
+    $headerJson = JWT::urlsafeB64Decode($headb64);
+    $payloadJson = JWT::urlsafeB64Decode($bodyb64);
+    $signature = JWT::urlsafeB64Decode($sigb64);
+
+    $header = json_decode($headerJson, true);
+    $payload = json_decode($payloadJson, true);
+
+    echo "===== JWT DEBUG =====\n";
+    echo "Header:\n"; print_r($header);
+    echo "Payload:\n"; print_r($payload);
+    echo "Signature (base64): $sigb64\n";
+    echo "Decoded Signature (hex): " . bin2hex($signature) . "\n";
+    echo "Algorithm: " . $header['alg'] . "\n";
+
+    // Verify signature manually
+    $signedData = $headb64 . '.' . $bodyb64;
+
+    $hash = hash_hmac('sha256', $signedData, $secretkey, true);
+    if (hash_equals($hash, $signature)) {
+        echo "✅ Signature is valid!\n";
+    } else {
+        echo "❌ Signature verification failed!\n";
+        echo "Expected (hex): " . bin2hex($hash) . "\n";
+    }
+
 } catch (Exception $e) {
-    throw new moodle_exception(
-        'invalidtoken',        // string key
-        'local_customapi',     // component
-        '',                    // link
-        null,                  // extra data
-        $e->getMessage()       // debug info
-    );
+    echo "Exception: " . $e->getMessage();
 }
-
-// 3. Get user ID from payload
-if (empty($decoded->userid)) {
-    //print_error('nouserid', 'local_customapi');
-    throw new moodle_exception('nouserid', 'local_customapi');
-}
-$userid = (int)$decoded->userid;
-
-// 4. Verify user exists
-$user = $DB->get_record('user', [
-    'id'       => $userid,
-    'deleted'  => 0,
-    'suspended'=> 0
-], '*', MUST_EXIST);
-
-// 5. Log the user in
-complete_user_login($user);
-
-// 6. Redirect to dashboard (or custom page)
-redirect(new moodle_url('/my'));
