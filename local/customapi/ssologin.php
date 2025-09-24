@@ -1,19 +1,24 @@
 <?php
 require('../../config.php');
+require_once($CFG->libdir.'/authlib.php');
 require_once($CFG->dirroot . '/local/customapi/classes/JWT.php');
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// Get token from URL or manually
+// 1. Get token from URL
 $token = required_param('token', PARAM_RAW);
-$token = urldecode($token); // important if passed via URL
+$token = trim(urldecode($token)); // remove spaces and URL-encode artifacts
 
-//$secretkey = '7c3f2a1bb4d0b8b2f6e6a8fcb5a937ec0f85e4a52a1b2d76a16e3a92c37d4f7d';
-$secretkey = '7d6ecfd75c77713c9ac8e12230f2f11be9ff6f725316629145b334253c6a47e0';
+// 2. Your secret key
+$secretkey = '7c3f2a1bb4d0b8b2f6e6a8fcb5a937ec0f85e4a52a1b2d76a16e3a92c37d4f7d';
 
 try {
-    // Split token
+    // 3. Decode token
+    $decoded = JWT::decode($token, new Key($secretkey, 'HS256'));
+
+} catch (\Firebase\JWT\SignatureInvalidException $e) {
+    // Extract header, payload, signature
     list($headb64, $bodyb64, $sigb64) = explode('.', $token);
 
     $headerJson = JWT::urlsafeB64Decode($headb64);
@@ -23,24 +28,46 @@ try {
     $header = json_decode($headerJson, true);
     $payload = json_decode($payloadJson, true);
 
-    echo "===== JWT DEBUG =====\n";
-    echo "Header:\n"; print_r($header);
-    echo "Payload:\n"; print_r($payload);
-    echo "Signature (base64): $sigb64\n";
-    echo "Decoded Signature (hex): " . bin2hex($signature) . "\n";
-    echo "Algorithm: " . $header['alg'] . "\n";
-
-    // Verify signature manually
+    // Compute expected signature
     $signedData = $headb64 . '.' . $bodyb64;
+    $expectedSig = hash_hmac('sha256', $signedData, $secretkey, true);
 
-    $hash = hash_hmac('sha256', $signedData, $secretkey, true);
-    if (hash_equals($hash, $signature)) {
-        echo "✅ Signature is valid!\n";
-    } else {
-        echo "❌ Signature verification failed!\n";
-        echo "Expected (hex): " . bin2hex($hash) . "\n";
-    }
+    $debuginfo = [
+        'error' => 'Signature verification failed',
+        'header' => $header,
+        'payload' => $payload,
+        'provided_signature_base64' => $sigb64,
+        'provided_signature_hex' => bin2hex($signature),
+        'expected_signature_hex' => bin2hex($expectedSig),
+    ];
+
+    throw new moodle_exception('invalidtoken', 'local_customapi', '', null, json_encode($debuginfo));
+
+} catch (\Firebase\JWT\BeforeValidException $e) {
+    throw new moodle_exception('invalidtoken', 'local_customapi', '', null, 'Token used before valid time: ' . $e->getMessage());
+
+} catch (\Firebase\JWT\ExpiredException $e) {
+    throw new moodle_exception('invalidtoken', 'local_customapi', '', null, 'Token expired: ' . $e->getMessage());
 
 } catch (Exception $e) {
-    echo "Exception: " . $e->getMessage();
+    throw new moodle_exception('invalidtoken', 'local_customapi', '', null, 'Other error: ' . $e->getMessage());
 }
+
+// 4. Get user ID from payload
+if (empty($decoded->userid)) {
+    throw new moodle_exception('nouserid', 'local_customapi');
+}
+$userid = (int)$decoded->userid;
+
+// 5. Verify user exists
+$user = $DB->get_record('user', [
+    'id'       => $userid,
+    'deleted'  => 0,
+    'suspended'=> 0
+], '*', MUST_EXIST);
+
+// 6. Log the user in
+complete_user_login($user);
+
+// 7. Redirect to dashboard (or custom page)
+redirect(new moodle_url('/my'));
