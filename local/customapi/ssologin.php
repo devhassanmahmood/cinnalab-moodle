@@ -34,13 +34,13 @@ try {
 
     $debuginfo = [
         'error' => 'Signature verification failed',
-        'header' => $header,
+        /*'header' => $header,
         'payload' => $payload,
         'provided_signature_base64' => $sigb64,
         'provided_signature_hex' => bin2hex($signature),
-        'expected_signature_hex' => bin2hex($expectedSig),
+        'expected_signature_hex' => bin2hex($expectedSig),*/
     ];
-
+    //$decoded = JWT::decode($token, new Key(bin2hex($expectedSig), 'HS256'));
     throw new moodle_exception('invalidtoken', 'local_customapi', '', null, json_encode($debuginfo));
 
 } catch (\Firebase\JWT\BeforeValidException $e) {
