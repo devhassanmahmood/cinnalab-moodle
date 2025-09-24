@@ -19,8 +19,13 @@ try {
     //$decoded = JWT::decode($token, new Key($secretkey, 'HS256'));
     $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secretkey, 'HS256'));
 } catch (Exception $e) {
-   // print_error('invalidtoken', 'local_customapi', '', null, $e->getMessage());
-    throw new moodle_exception('invalidtoken', 'local_customapi');
+    throw new moodle_exception(
+        'invalidtoken',        // string key
+        'local_customapi',     // component
+        '',                    // link
+        null,                  // extra data
+        $e->getMessage()       // debug info
+    );
 }
 
 // 3. Get user ID from payload
