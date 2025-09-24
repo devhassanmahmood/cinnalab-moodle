@@ -9,7 +9,8 @@ use Firebase\JWT\Key;
 $token = required_param('token', PARAM_RAW);
 $token = urldecode($token); // important if passed via URL
 
-$secretkey = '7c3f2a1bb4d0b8b2f6e6a8fcb5a937ec0f85e4a52a1b2d76a16e3a92c37d4f7d';
+//$secretkey = '7c3f2a1bb4d0b8b2f6e6a8fcb5a937ec0f85e4a52a1b2d76a16e3a92c37d4f7d';
+$secretkey = '7d6ecfd75c77713c9ac8e12230f2f11be9ff6f725316629145b334253c6a47e0';
 
 try {
     // Split token
