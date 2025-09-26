@@ -248,7 +248,7 @@ class local_customapi_external extends external_api {
     public static function create_user_in_tenant_returns() {
         return new external_single_structure([
             'user_id' => new external_value(PARAM_INT, 'New user ID'),
-            'password' => new external_value(PARAM_TEXT, 'Generated or provided password')
+           // 'password' => new external_value(PARAM_TEXT, 'Generated or provided password')
         ]);
     }
 
