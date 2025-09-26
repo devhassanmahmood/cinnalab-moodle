@@ -244,7 +244,7 @@ class local_customapi_external extends external_api {
         $systemcontext = context_system::instance();
         role_assign(
             $role_id,           // roleid (Vendor role id)
-            $user_id,           // userid
+            $userid,           // userid
             $systemcontext->id, // contextid (system context for tenant)
             'tool_mutenancy',   // component (marks this as mutenancy assignment)
             $tenant          // itemid (links to tenant)
