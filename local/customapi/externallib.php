@@ -215,6 +215,8 @@ class local_customapi_external extends external_api {
         // ✅ Use correct allocation method.
         if (class_exists('\\tool_mutenancy\\local\\user') && method_exists('\\tool_mutenancy\\local\\user', 'allocate')) {
             \tool_mutenancy\local\user::allocate($userid, $tenant);
+            $tenantcontext = \tool_mutenancy\local\tenant\context_tenant::instance($tenantobj->id);
+            role_assign($roleid, $userid, $tenantcontext->id);
         } else {
             throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate');
         }
