@@ -241,7 +241,14 @@ class local_customapi_external extends external_api {
             );
         }
 
-
+        $systemcontext = context_system::instance();
+        role_assign(
+            $role_id,           // roleid (Vendor role id)
+            $user_id,           // userid
+            $systemcontext->id, // contextid (system context for tenant)
+            'tool_mutenancy',   // component (marks this as mutenancy assignment)
+            $tenant          // itemid (links to tenant)
+        );
         return ['user_id' => (int)$userid];
     }
 
@@ -546,6 +553,105 @@ class local_customapi_external extends external_api {
                 'status' => new external_value(PARAM_TEXT, 'User completion status'),
             ])
         );
+    }
+
+
+    /* -------------------- 7. Add User as Vendor to Tenant -------------------- */
+
+    public static function add_user_by_role_parameters() {
+        return new external_function_parameters([
+            'user_id' => new external_value(PARAM_INT, 'User ID', VALUE_REQUIRED),
+            'tenant_id' => new external_value(PARAM_INT, 'Tenant ID', VALUE_REQUIRED),
+            'role_id' => new external_value(PARAM_INT, 'Vendor Role ID', VALUE_REQUIRED),
+        ]);
+    }
+
+    public static function add_user_by_role($user_id, $tenant_id, $role_id) {
+        global $DB, $CFG;
+
+        require_once($CFG->dirroot . '/lib/accesslib.php');
+
+        self::validate_parameters(self::add_user_by_role_parameters(), compact('user_id', 'tenant_id', 'role_id'));
+
+        $context = context_system::instance();
+        self::validate_context($context);
+        require_capability('tool/mutenancy:admin', $context);
+        require_capability('moodle/role:assign', $context);
+
+        // Validate user existence
+        if (!$DB->record_exists('user', ['id' => $user_id, 'deleted' => 0])) {
+            throw new moodle_exception('usernotfound', 'local_customapi');
+        }
+
+        // Validate role existence
+        if (!$DB->record_exists('role', ['id' => $role_id])) {
+            throw new moodle_exception('rolenotfound', 'local_customapi');
+        }
+
+        // Load tenant
+        $manager = self::load_mutenancy_manager();
+        $mutenancytable = self::detect_mutenancy_table();
+        if (empty($manager) && !$mutenancytable) {
+            throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+        }
+
+        $tenantobj = null;
+        if (!empty($manager) && method_exists($manager, 'get_tenant')) {
+            $tenantobj = $manager->get_tenant($tenant_id);
+        } else if ($mutenancytable) {
+            $tenantobj = $DB->get_record($mutenancytable, ['id' => $tenant_id]);
+        }
+        if (!$tenantobj) {
+            throw new moodle_exception('tenantnotfound', 'local_customapi');
+        }
+
+        // Validate category
+        if (empty($tenantobj->categoryid)) {
+            throw new moodle_exception('tenantnoconfiguredcategory', 'local_customapi');
+        }
+
+        // Allocate user to tenant
+        if (class_exists('\\tool_mutenancy\\local\\user') && method_exists('\\tool_mutenancy\\local\\user', 'allocate')) {
+            \tool_mutenancy\local\user::allocate($user_id, $tenant_id);
+        } else {
+            throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate');
+        }
+
+        // Add user to tenant cohort
+        cohort_add_member($tenantobj->cohortid, $user_id);
+
+        // Get tenant's category context
+        $categorycontext = \context_coursecat::instance($tenantobj->categoryid, IGNORE_MISSING);
+        if (!$categorycontext) {
+            throw new moodle_exception('invalidtenantcategory', 'local_customapi');
+        }
+
+        // Assign the vendor role in the tenant's category context
+        role_assign(
+            $role_id,           // roleid (Vendor role id)
+            $user_id,           // userid
+            $categorycontext->id,  // contextid (tenant's category)
+            'tool_mutenancy',   // component (marks this as mutenancy assignment)
+            $tenant_id          // itemid (links to tenant)
+        );
+
+        // Assign the vendor role in the system context (tenant level)
+        $systemcontext = context_system::instance();
+        role_assign(
+            $role_id,           // roleid (Vendor role id)
+            $user_id,           // userid
+            $systemcontext->id, // contextid (system context for tenant)
+            'tool_mutenancy',   // component (marks this as mutenancy assignment)
+            $tenant_id          // itemid (links to tenant)
+        );
+
+        return ['success' => true];
+    }
+
+    public static function add_user_by_role_returns() {
+        return new external_single_structure([
+            'success' => new external_value(PARAM_BOOL, 'Operation success'),
+        ]);
     }
 }
 

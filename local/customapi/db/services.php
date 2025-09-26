@@ -56,6 +56,15 @@ $functions = [
         'capabilities' => 'moodle/course:view',
         'ajax' => true,
     ],
+    'local_customapi_add_user_by_role' => [
+        'classname' => 'local_customapi_external',
+        'methodname' => 'add_user_by_role',
+        'classpath' => 'local/customapi/externallib.php',
+        'description' => 'Add an existing user to a tenant with a role',
+        'type' => 'write',
+        'capabilities' => 'tool/mutenancy:admin,moodle/role:assign',
+        'ajax' => true,
+    ],
 ];
 
 $services = [
