@@ -215,8 +215,6 @@ class local_customapi_external extends external_api {
         // ✅ Use correct allocation method.
         if (class_exists('\\tool_mutenancy\\local\\user') && method_exists('\\tool_mutenancy\\local\\user', 'allocate')) {
             \tool_mutenancy\local\user::allocate($userid, $tenant);
-            $tenantcontext = \tool_mutenancy\local\tenant\context_tenant::instance($tenantobj->id);
-            role_assign($roleid, $userid, $tenantcontext->id);
         } else {
             throw new moodle_exception('mutenancymethodmissing', 'local_customapi', '', 'allocate');
         }
@@ -224,10 +222,27 @@ class local_customapi_external extends external_api {
         if (empty($tenantobj->categoryid)) {
             throw new moodle_exception('tenantnoconfiguredcategory', 'local_customapi');
         }
-        $contextcat = context_coursecat::instance($tenantobj->categoryid);
-        role_assign($role_id, $userid, $contextcat->id);
+        /*$contextcat = context_coursecat::instance($tenantobj->categoryid);
+        role_assign($role_id, $userid, $contextcat->id);*/
+        // 1. Add user to tenant cohort (so enrolments work automatically).
+        cohort_add_member($tenantobj->cohortid, $userid);
 
-        return ['user_id' => (int)$userid, 'password' => $userpassword];
+        // 2. Get tenant's category context (tenants are mapped to course categories).
+        $categorycontext = \context_coursecat::instance($tenantobj->categoryid, IGNORE_MISSING);
+
+        // 3. Assign the chosen role in the tenant’s category, and scope it to the tenant.
+        if ($categorycontext) {
+            role_assign(
+                $role_id,      // roleid (e.g. Vendor role id)
+                $userid,        // userid
+                $categorycontext->id,  // contextid (tenant’s category)
+                'tool_mutenancy',      // component (marks this as mutenancy assignment)
+                $tenant            // itemid (links to tenant)
+            );
+        }
+
+
+        return ['user_id' => (int)$userid];
     }
 
     public static function create_user_in_tenant_returns() {
