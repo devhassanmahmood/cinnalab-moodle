@@ -70,4 +70,13 @@ $user = $DB->get_record('user', [
 complete_user_login($user);
 
 // 7. Redirect to dashboard (or custom page)
-redirect('https://cinnalab-moodle-production-b3e00f70bfeb.herokuapp.com/my/');
+$baseurl = $CFG->wwwroot;
+
+// Force it to https.
+$secureurl = preg_replace('/^http:/i', 'https:', $baseurl);
+
+// Append /my/.
+$redirecturl = $secureurl . '/my/';
+
+// Redirect user.
+redirect($redirecturl);
