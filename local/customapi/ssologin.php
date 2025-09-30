@@ -70,4 +70,4 @@ $user = $DB->get_record('user', [
 complete_user_login($user);
 
 // 7. Redirect to dashboard (or custom page)
-redirect(new moodle_url('/my'));
+redirect('https://cinnalab-moodle-production-b3e00f70bfeb.herokuapp.com/my/');
