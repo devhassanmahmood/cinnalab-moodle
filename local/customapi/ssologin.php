@@ -70,4 +70,6 @@ $user = $DB->get_record('user', [
 complete_user_login($user);
 
 // 7. Redirect to dashboard (or custom page)
-redirect(new moodle_url('/my'));
+echo new moodle_url('/my');
+exit;
+
