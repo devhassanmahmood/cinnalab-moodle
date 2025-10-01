@@ -65,6 +65,15 @@ $functions = [
         'capabilities' => 'tool/mutenancy:admin,moodle/role:assign',
         'ajax' => true,
     ],
+    'local_customapi_logout_user' => [
+        'classname'   => 'local_customapi_external',
+        'methodname'  => 'logout_user',
+        'classpath'   => 'local/customapi/externallib.php',
+        'description' => 'Force logout a user by ending their active sessions',
+        'type'        => 'write',
+        'capabilities'=> 'moodle/user:loginas',
+        'ajax'        => true,
+    ],
 ];
 
 $services = [

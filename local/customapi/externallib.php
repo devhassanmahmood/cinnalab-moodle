@@ -653,6 +653,50 @@ class local_customapi_external extends external_api {
             'success' => new external_value(PARAM_BOOL, 'Operation success'),
         ]);
     }
+
+
+        /* -------------------- 8. Logout User -------------------- */
+
+    public static function logout_user_parameters() {
+        return new \external_function_parameters([
+            'user_id' => new \external_value(PARAM_INT, 'User ID', VALUE_REQUIRED),
+        ]);
+    }
+
+    public static function logout_user($user_id) {
+        global $DB;
+
+        $params = self::validate_parameters(
+            self::logout_user_parameters(),
+            ['user_id' => $user_id]
+        );
+
+        $context = \context_system::instance();
+        self::validate_context($context);
+        require_capability('moodle/user:loginas', $context); // or create a custom capability
+
+        // Validate user exists.
+        $user = $DB->get_record('user', ['id' => $params['user_id'], 'deleted' => 0], '*', IGNORE_MISSING);
+        if (!$user) {
+            throw new \moodle_exception('usernotfound', 'local_customapi');
+        }
+
+        // ✅ Kill all active sessions for the user.
+        if (class_exists('\core\session\manager')) {
+            \core\session\manager::kill_user_sessions($params['user_id']);
+        } else {
+            // Fallback for older Moodle.
+            $DB->delete_records('sessions', ['userid' => $params['user_id']]);
+        }
+
+        return ['success' => true];
+    }
+
+    public static function logout_user_returns() {
+        return new \external_single_structure([
+            'success' => new \external_value(PARAM_BOOL, 'Whether the logout was successful'),
+        ]);
+    }
 }
 
 /**
