@@ -74,6 +74,16 @@ $functions = [
         'capabilities'=> 'moodle/user:loginas',
         'ajax'        => true,
     ],
+    'local_customapi_get_partner_participation' => [
+        'classname'   => 'local_customapi\external\api',
+        'methodname'  => 'get_partner_participation',
+        'classpath'   => 'local/customapi/classes/external/api.php',
+        'description' => 'Get partner participation percentage and detailed user progress in a tenant',
+        'type'        => 'read',
+        'capabilities'=> 'moodle/course:view',
+        'ajax'        => true,
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE], // makes it available to mobile WS too
+    ],
 ];
 
 $services = [

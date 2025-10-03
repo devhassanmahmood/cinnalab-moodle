@@ -653,6 +653,161 @@ class local_customapi_external extends external_api {
             'success' => new external_value(PARAM_BOOL, 'Operation success'),
         ]);
     }
+
+
+        /**
+         * 8. Partner Training Participation
+         */
+        public static function get_partner_participation_parameters() {
+            return new external_function_parameters([
+                'tenant_id' => new external_value(PARAM_INT, 'Tenant ID', VALUE_REQUIRED),
+                'role_ids'  => new external_multiple_structure(
+                    new external_value(PARAM_INT, 'Role ID'),
+                    'Role IDs for partner / partner team',
+                    VALUE_REQUIRED
+                ),
+            ]);
+        }
+
+        public static function get_partner_participation($tenant_id, $role_ids) {
+            global $DB, $CFG;
+
+            require_once($CFG->libdir . '/completionlib.php');
+
+            self::validate_parameters(self::get_partner_participation_parameters(), compact('tenant_id', 'role_ids'));
+
+            $context = context_system::instance();
+            self::validate_context($context);
+            require_capability('moodle/course:view', $context);
+
+            // Load tenant
+            $manager = self::load_mutenancy_manager();
+            $mutenancytable = self::detect_mutenancy_table();
+            if (empty($manager) && !$mutenancytable) {
+                throw new moodle_exception('mutenancynotinstalled', 'local_customapi');
+            }
+
+            if (!empty($manager) && method_exists($manager, 'get_tenant')) {
+                $tenantobj = $manager->get_tenant($tenant_id);
+            } else {
+                $tenantobj = $DB->get_record($mutenancytable, ['id' => $tenant_id]);
+            }
+            if (!$tenantobj) {
+                throw new moodle_exception('tenantnotfound', 'local_customapi');
+            }
+
+            // Get tenant category context
+            if (empty($tenantobj->categoryid)) {
+                throw new moodle_exception('tenantnoconfiguredcategory', 'local_customapi');
+            }
+            $categorycontext = \context_coursecat::instance($tenantobj->categoryid);
+
+            // Find users with the given partner role(s) in this tenant
+            list($insql, $inparams) = $DB->get_in_or_equal($role_ids, SQL_PARAMS_NAMED);
+            $sql = "SELECT ra.userid, r.id as roleid, r.shortname as roleshort
+                      FROM {role_assignments} ra
+                      JOIN {role} r ON ra.roleid = r.id
+                     WHERE ra.contextid = :ctxid
+                       AND ra.component = 'tool_mutenancy'
+                       AND ra.itemid = :tenantid
+                       AND ra.roleid $insql";
+            $params = ['ctxid' => $categorycontext->id, 'tenantid' => $tenant_id] + $inparams;
+            $assignments = $DB->get_records_sql($sql, $params);
+
+            if (!$assignments) {
+                return [
+                    'participation_percentage' => 0,
+                    'users' => []
+                ];
+            }
+
+            $usersdata = [];
+            $engagedcount = 0;
+
+            foreach ($assignments as $a) {
+                $user = $DB->get_record('user', ['id' => $a->userid, 'deleted' => 0], 'id, firstname, lastname, email');
+                if (!$user) {
+                    continue;
+                }
+
+                $courses = enrol_get_users_courses($user->id);
+                $userprogress = [];
+                $hasengagement = false;
+
+                foreach ($courses as $course) {
+                    $completion = new completion_info($course);
+                    $progress = null;
+                    $status = 'not_started';
+
+                    if ($completion->is_enabled()) {
+                        $percentage = \core_completion\progress::get_course_progress_percentage($course, $user->id);
+                        $progress = $percentage !== null ? (int)round($percentage) : 0;
+
+                        if ($progress == 0) {
+                            $status = 'not_started';
+                        } else if ($progress > 0 && $progress < 100) {
+                            $status = 'in_progress';
+                            $hasengagement = true;
+                        } else if ($progress == 100) {
+                            $status = 'completed';
+                            $hasengagement = true;
+                        }
+                    }
+
+                    $userprogress[] = [
+                        'course_id'   => (int)$course->id,
+                        'fullname'    => $course->fullname,
+                        'shortname'   => $course->shortname,
+                        'progress'    => $progress,
+                        'status'      => $status,
+                    ];
+                }
+
+                if ($hasengagement) {
+                    $engagedcount++;
+                }
+
+                $usersdata[] = [
+                    'id'       => (int)$user->id,
+                    'fullname' => fullname($user),
+                    'email'    => $user->email,
+                    'role'     => $a->roleshort,
+                    'courses'  => $userprogress,
+                ];
+            }
+
+            $totalusers = count($assignments);
+            $participation = $totalusers > 0 ? round(($engagedcount / $totalusers) * 100, 2) : 0;
+
+            return [
+                'participation_percentage' => $participation,
+                'users' => $usersdata,
+            ];
+        }
+
+        public static function get_partner_participation_returns() {
+            return new external_single_structure([
+                'participation_percentage' => new external_value(PARAM_FLOAT, 'Overall participation % of partner users'),
+                'users' => new external_multiple_structure(
+                    new external_single_structure([
+                        'id' => new external_value(PARAM_INT, 'User ID'),
+                        'fullname' => new external_value(PARAM_TEXT, 'Full name'),
+                        'email' => new external_value(PARAM_EMAIL, 'Email'),
+                        'role' => new external_value(PARAM_TEXT, 'Role shortname'),
+                        'courses' => new external_multiple_structure(
+                            new external_single_structure([
+                                'course_id' => new external_value(PARAM_INT, 'Course ID'),
+                                'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
+                                'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                                'progress' => new external_value(PARAM_INT, 'Progress %'),
+                                'status' => new external_value(PARAM_TEXT, 'Progress status'),
+                            ])
+                        ),
+                    ])
+                ),
+            ]);
+        }
+
 }
 
 /**
