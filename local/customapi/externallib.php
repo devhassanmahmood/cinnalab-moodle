@@ -172,12 +172,6 @@ class local_customapi_external extends external_api {
 
         $params = self::validate_parameters(self::create_user_in_tenant_parameters(), compact('email', 'tenant', 'role_id', 'firstname', 'lastname', 'password'));
 
-        $context = context_system::instance();
-        self::validate_context($context);
-
-        require_capability('moodle/user:create', $context);
-        require_capability('tool/mutenancy:admin', $context);
-
         require_once($CFG->dirroot . '/user/lib.php');
         require_once($CFG->dirroot . '/lib/accesslib.php');
 
@@ -222,13 +216,21 @@ class local_customapi_external extends external_api {
         if (empty($tenantobj->categoryid)) {
             throw new moodle_exception('tenantnoconfiguredcategory', 'local_customapi');
         }
-        /*$contextcat = context_coursecat::instance($tenantobj->categoryid);
-        role_assign($role_id, $userid, $contextcat->id);*/
+        
         // 1. Add user to tenant cohort (so enrolments work automatically).
         cohort_add_member($tenantobj->cohortid, $userid);
 
         // 2. Get tenant's category context (tenants are mapped to course categories).
         $categorycontext = \context_coursecat::instance($tenantobj->categoryid, IGNORE_MISSING);
+        if (!$categorycontext) {
+            throw new moodle_exception('tenantnoconfiguredcategory', 'local_customapi');
+        }
+
+        // Validate that the current user has the right to create/manage users in this tenant only.
+        self::validate_context($categorycontext);
+
+        require_capability('moodle/user:create', $categorycontext);
+        require_capability('tool/mutenancy:admin', $categorycontext);
 
         // 3. Assign the chosen role in the tenant’s category, and scope it to the tenant.
         if ($categorycontext) {
@@ -240,15 +242,7 @@ class local_customapi_external extends external_api {
                 $tenant            // itemid (links to tenant)
             );
         }
-
-        /*$systemcontext = context_system::instance();
-        role_assign(
-            $role_id,           // roleid (Vendor role id)
-            $userid,           // userid
-            $systemcontext->id, // contextid (system context for tenant)
-            'tool_mutenancy',   // component (marks this as mutenancy assignment)
-            $tenant          // itemid (links to tenant)
-        );*/
+        
         return ['user_id' => (int)$userid];
     }
 
