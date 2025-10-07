@@ -33,64 +33,30 @@ class tenant_helper {
      */
     public static function get_user_tenant($userid = null) {
         global $USER, $DB;
-
+    
         // Check if Multi Tenant Tool is available
         if (!class_exists('\tool_mutenancy\local\tenant')) {
             return null;
         }
-
+    
         if ($userid === null) {
             $userid = $USER->id;
         }
-
-        // Try multiple approaches to find user's tenant
-        
-        // Approach 1: Check through tenant managers table (direct tenant management)
-        $tenantmanager = $DB->get_record('tool_mutenancy_manager', ['userid' => $userid]);
-        if ($tenantmanager) {
-            $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantmanager->tenantid]);
-            if ($tenant) {
-                return $tenant;
-            }
+    
+        // Get tenant mapping from tool_mutenancy_user table
+        $tenantuser = $DB->get_record('tool_mutenancy_user', ['userid' => $userid]);
+        if (!$tenantuser) {
+            return null;
         }
-
-        // Approach 2: Check through tenant cohorts (primary tenant membership method)
-        $sql = "SELECT t.* 
-                FROM {tool_mutenancy_tenant} t
-                JOIN {cohort_members} cm ON t.cohortid = cm.cohortid
-                WHERE cm.userid = :userid
-                AND t.archived = 0";
-        $tenant = $DB->get_record_sql($sql, ['userid' => $userid]);
-        if ($tenant) {
-            return $tenant;
+    
+        // Get tenant info
+        $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantuser->tenantid]);
+        if (!$tenant) {
+            return null;
         }
-
-        // Approach 3: Check through associated cohorts
-        $sql = "SELECT t.* 
-                FROM {tool_mutenancy_tenant} t
-                JOIN {cohort_members} cm ON t.assoccohortid = cm.cohortid
-                WHERE cm.userid = :userid
-                AND t.archived = 0";
-        $tenant = $DB->get_record_sql($sql, ['userid' => $userid]);
-        if ($tenant) {
-            return $tenant;
-        }
-
-        // Approach 4: Check through course enrollments and categories (fallback)
-        $enrolledcourses = enrol_get_users_courses($userid);
-        foreach ($enrolledcourses as $course) {
-            $category = $DB->get_record('course_categories', ['id' => $course->category]);
-            if ($category) {
-                // Check if this category is associated with a tenant
-                $tenant = $DB->get_record('tool_mutenancy_tenant', ['categoryid' => $category->id]);
-                if ($tenant && $tenant->archived == 0) {
-                    return $tenant;
-                }
-            }
-        }
-
-        return null;
-    }
+    
+        return $tenant;
+    }    
 
     /**
      * Debug function to check Multi Tenant Tool tables and structure.
