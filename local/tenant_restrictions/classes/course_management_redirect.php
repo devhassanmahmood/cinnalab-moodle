@@ -87,20 +87,21 @@ class course_management_redirect {
             $tenant_category = tenant_helper::get_tenant_category();
             if ($tenant_category) {
                 // Inject JavaScript to modify "Add new course" links
-                $js_code = "
-                require(['jquery'], function($) {
-                    $(document).ready(function() {
-                        // Modify all 'Add new course' links to include tenant category
-                        $('a[href*=\"course/edit.php\"]').each(function() {
-                            var href = $(this).attr('href');
-                            if (href.indexOf('category=') === -1) {
-                                var separator = href.indexOf('?') !== -1 ? '&' : '?';
-                                $(this).attr('href', href + separator + 'category={$tenant_category}');
+                $js_code = '
+                require(["jquery"], function(jQuery) {
+                    jQuery(document).ready(function() {
+                        // Modify all "Add new course" links to include tenant category
+                        jQuery("a[href*=\\"course/edit.php\\"]").each(function() {
+                            var linkElement = jQuery(this);
+                            var href = linkElement.attr("href");
+                            if (href.indexOf("category=") === -1) {
+                                var separator = href.indexOf("?") !== -1 ? "&" : "?";
+                                linkElement.attr("href", href + separator + "category=' . $tenant_category . '");
                             }
                         });
                     });
                 });
-                ";
+                ';
                 
                 $PAGE->requires->js_amd_inline($js_code);
             }

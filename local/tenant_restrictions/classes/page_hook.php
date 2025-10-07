@@ -42,12 +42,12 @@ class page_hook {
         $js_allowed_categories = json_encode($allowed_categories);
 
         // Inject JavaScript to filter categories using inline approach
-        $js_code = "
-        require(['jquery'], function($) {
+        $js_code = '
+        require(["jquery"], function(jQuery) {
             // Store configuration
             window.tenantRestrictions = {
-                allowedCategories: {$js_allowed_categories},
-                tenantCategory: " . \local_tenant_restrictions\tenant_helper::get_tenant_category() . "
+                allowedCategories: ' . $js_allowed_categories . ',
+                tenantCategory: ' . \local_tenant_restrictions\tenant_helper::get_tenant_category() . '
             };
             
             // Filter category dropdowns
@@ -57,33 +57,33 @@ class page_hook {
                 }
                 
                 var selectors = [
-                    'select[name=\"category\"]',
-                    'select[name=\"categoryid\"]',
-                    'select[id*=\"id_category\"]',
-                    'select[id*=\"category\"]',
-                    '#id_category',
-                    '#id_categoryid'
+                    "select[name=\\"category\\"]",
+                    "select[name=\\"categoryid\\"]",
+                    "select[id*=\\"id_category\\"]",
+                    "select[id*=\\"category\\"]",
+                    "#id_category",
+                    "#id_categoryid"
                 ];
                 
                 selectors.forEach(function(selector) {
-                    $(selector).each(function() {
-                        var $select = $(this);
-                        var $options = $select.find('option');
+                    jQuery(selector).each(function() {
+                        var selectElement = jQuery(this);
+                        var options = selectElement.find("option");
                         
-                        $options.each(function() {
-                            var $option = $(this);
-                            var value = parseInt($option.val());
+                        options.each(function() {
+                            var optionElement = jQuery(this);
+                            var value = parseInt(optionElement.val());
                             
                             // Keep empty/default options
-                            if (value === 0 || value === '' || $option.text().trim() === '' || 
-                                $option.text().indexOf('Choose') !== -1 || 
-                                $option.text().indexOf('Select') !== -1) {
+                            if (value === 0 || value === "" || optionElement.text().trim() === "" || 
+                                optionElement.text().indexOf("Choose") !== -1 || 
+                                optionElement.text().indexOf("Select") !== -1) {
                                 return;
                             }
                             
                             // Hide options not in allowed categories
                             if (allowedCategories.indexOf(value) === -1) {
-                                $option.hide();
+                                optionElement.hide();
                             }
                         });
                     });
@@ -96,14 +96,14 @@ class page_hook {
                     return;
                 }
                 
-                $('a[href*=\"course/edit.php\"]').each(function() {
-                    var $link = $(this);
-                    var href = $link.attr('href');
+                jQuery("a[href*=\\"course/edit.php\\"]").each(function() {
+                    var linkElement = jQuery(this);
+                    var href = linkElement.attr("href");
                     
-                    if (href.indexOf('category=') === -1) {
-                        var separator = href.indexOf('?') !== -1 ? '&' : '?';
-                        var newHref = href + separator + 'category=' + tenantCategory;
-                        $link.attr('href', newHref);
+                    if (href.indexOf("category=") === -1) {
+                        var separator = href.indexOf("?") !== -1 ? "&" : "?";
+                        var newHref = href + separator + "category=" + tenantCategory;
+                        linkElement.attr("href", newHref);
                     }
                 });
             }
@@ -119,13 +119,13 @@ class page_hook {
             }, 1000);
             
             // Listen for form changes
-            $(document).on('focus click', 'select[name=\"category\"], select[name=\"categoryid\"], .form-autocomplete input', function() {
+            jQuery(document).on("focus click", "select[name=\\"category\\"], select[name=\\"categoryid\\"], .form-autocomplete input", function() {
                 setTimeout(function() {
                     filterCategoryDropdowns(window.tenantRestrictions.allowedCategories);
                 }, 200);
             });
         });
-        ";
+        ';
 
         $PAGE->requires->js_amd_inline($js_code);
     }
