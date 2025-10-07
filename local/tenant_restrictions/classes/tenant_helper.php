@@ -34,6 +34,11 @@ class tenant_helper {
     public static function get_user_tenant($userid = null) {
         global $USER, $DB;
 
+        // Check if Multi Tenant Tool is available
+        if (!class_exists('\tool_mutenancy\local\tenant')) {
+            return null;
+        }
+
         if ($userid === null) {
             $userid = $USER->id;
         }
@@ -82,8 +87,13 @@ class tenant_helper {
         }
 
         // Check user's role assignments in tenant context
-        $tenantcontext = \context_tenant::instance($tenant->id);
-        $roles = get_user_roles($tenantcontext, $userid, false);
+        try {
+            $tenantcontext = \context_tenant::instance($tenant->id);
+            $roles = get_user_roles($tenantcontext, $userid, false);
+        } catch (Exception $e) {
+            // If context_tenant is not available, return null
+            return null;
+        }
 
         foreach ($roles as $role) {
             $role_shortname = $role->shortname;

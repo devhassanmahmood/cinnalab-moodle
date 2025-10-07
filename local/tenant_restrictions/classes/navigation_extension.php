@@ -33,36 +33,41 @@ class navigation_extension {
     public static function extend_navigation($navigation) {
         global $USER;
 
-        // Only add for Vendor Admin users
-        if (!tenant_helper::is_vendor_admin()) {
-            return;
-        }
+        try {
+            // Only add for Vendor Admin users
+            if (!tenant_helper::is_vendor_admin()) {
+                return;
+            }
 
-        $tenant = tenant_helper::get_user_tenant();
-        if (!$tenant) {
-            return;
-        }
+            $tenant = tenant_helper::get_user_tenant();
+            if (!$tenant) {
+                return;
+            }
 
-        // Check if the menu item already exists to avoid duplicates
-        if ($navigation->find('tenant_managetenant', navigation_node::TYPE_CUSTOM)) {
-            return;
-        }
+            // Check if the menu item already exists to avoid duplicates
+            if ($navigation->find('tenant_managetenant', \navigation_node::TYPE_CUSTOM)) {
+                return;
+            }
 
-        // Find the user menu
-        $usermenu = $navigation->find('user', navigation_node::TYPE_CONTAINER);
-        if (!$usermenu) {
-            return;
-        }
+            // Find the user menu
+            $usermenu = $navigation->find('user', \navigation_node::TYPE_CONTAINER);
+            if (!$usermenu) {
+                return;
+            }
 
-        // Add "Manage Tenant" menu item
-        $managetenant = $usermenu->add(
-            get_string('managetenant_nav', 'local_tenant_restrictions'),
-            new \moodle_url('/local/tenant_restrictions/manage_tenant.php'),
-            navigation_node::TYPE_CUSTOM,
-            null,
-            'tenant_managetenant'
-        );
-        $managetenant->set_icon(new \pix_icon('i/settings', ''));
+            // Add "Manage Tenant" menu item
+            $managetenant = $usermenu->add(
+                get_string('managetenant_nav', 'local_tenant_restrictions'),
+                new \moodle_url('/local/tenant_restrictions/manage_tenant.php'),
+                \navigation_node::TYPE_CUSTOM,
+                null,
+                'tenant_managetenant'
+            );
+            $managetenant->set_icon(new \pix_icon('i/settings', ''));
+        } catch (Exception $e) {
+            // Log error but don't break the page
+            debugging('Tenant restrictions navigation error: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 
     /**
