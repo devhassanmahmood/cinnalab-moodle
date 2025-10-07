@@ -25,13 +25,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    $ADMIN->add('localplugins', new admin_externalpage(
-        'local_tenant_restrictions',
-        get_string('pluginname', 'local_tenant_restrictions'),
-        new moodle_url('/local/tenant_restrictions/settings.php'),
-        'moodle/site:config'
-    ));
-
     $settings = new admin_settingpage('local_tenant_restrictions', get_string('pluginname', 'local_tenant_restrictions'));
     
     if ($ADMIN->fulltree) {

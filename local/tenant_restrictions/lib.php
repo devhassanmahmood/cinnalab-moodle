@@ -105,27 +105,7 @@ function local_tenant_restrictions_can_manage_course($courseid) {
  * @param navigation_node $navigation Navigation node
  */
 function local_tenant_restrictions_extend_navigation($navigation) {
-    global $USER;
-
-    // Only add for Vendor Admin users
-    if (!\local_tenant_restrictions\tenant_helper::is_vendor_admin()) {
-        return;
-    }
-
-    $tenant = \local_tenant_restrictions\tenant_helper::get_user_tenant();
-    if (!$tenant) {
-        return;
-    }
-
-    // Add "Manage Tenant" menu item
-    $managetenant = $navigation->add(
-        get_string('managetenant_nav', 'local_tenant_restrictions'),
-        new \moodle_url('/local/tenant_restrictions/manage_tenant.php'),
-        navigation_node::TYPE_CUSTOM,
-        null,
-        'managetenant'
-    );
-    $managetenant->set_icon(new \pix_icon('i/settings', ''));
+    \local_tenant_restrictions\navigation_extension::extend_navigation($navigation);
 }
 
 /**

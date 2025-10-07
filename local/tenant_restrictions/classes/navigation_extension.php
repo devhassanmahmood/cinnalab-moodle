@@ -43,16 +43,15 @@ class navigation_extension {
             return;
         }
 
-        // Find the user menu or create a new section
+        // Check if the menu item already exists to avoid duplicates
+        if ($navigation->find('tenant_managetenant', navigation_node::TYPE_CUSTOM)) {
+            return;
+        }
+
+        // Find the user menu
         $usermenu = $navigation->find('user', navigation_node::TYPE_CONTAINER);
         if (!$usermenu) {
-            $usermenu = $navigation->add(
-                get_string('managetenant_nav', 'local_tenant_restrictions'),
-                null,
-                navigation_node::TYPE_CONTAINER,
-                null,
-                'tenant_management'
-            );
+            return;
         }
 
         // Add "Manage Tenant" menu item
@@ -61,7 +60,7 @@ class navigation_extension {
             new \moodle_url('/local/tenant_restrictions/manage_tenant.php'),
             navigation_node::TYPE_CUSTOM,
             null,
-            'managetenant'
+            'tenant_managetenant'
         );
         $managetenant->set_icon(new \pix_icon('i/settings', ''));
     }
