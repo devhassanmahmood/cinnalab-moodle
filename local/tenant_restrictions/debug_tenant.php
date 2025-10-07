@@ -30,10 +30,23 @@ echo $OUTPUT->header();
 echo "<h2>Multi Tenant Tool Debug Information</h2>";
 
 // Check if Multi Tenant Tool is available
-if (!class_exists('\tool_mutenancy\local\tenant')) {
-    echo "<p style='color: red;'>Multi Tenant Tool is not available. Class '\\tool_mutenancy\\local\\tenant' not found.</p>";
+if (!class_exists('\tool_mutenancy\local\tenancy')) {
+    echo "<p style='color: red;'>Multi Tenant Tool is not available. Class '\\tool_mutenancy\\local\\tenancy' not found.</p>";
 } else {
     echo "<p style='color: green;'>Multi Tenant Tool is available.</p>";
+    
+    // Test the API directly
+    echo "<h3>Multi Tenant Tool API Test:</h3>";
+    try {
+        $tenantid = \tool_mutenancy\local\tenancy::get_user_tenantid($USER->id);
+        if ($tenantid) {
+            echo "<p style='color: green;'>API returned tenant ID: " . $tenantid . "</p>";
+        } else {
+            echo "<p style='color: orange;'>API returned no tenant ID for current user.</p>";
+        }
+    } catch (Exception $e) {
+        echo "<p style='color: red;'>API error: " . htmlspecialchars($e->getMessage()) . "</p>";
+    }
 }
 
 // Debug tenant tables

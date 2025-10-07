@@ -33,30 +33,58 @@ class tenant_helper {
      */
     public static function get_user_tenant($userid = null) {
         global $USER, $DB;
-    
+
         // Check if Multi Tenant Tool is available
-        if (!class_exists('\tool_mutenancy\local\tenant')) {
+        if (!class_exists('\tool_mutenancy\local\tenancy')) {
             return null;
         }
-    
+
         if ($userid === null) {
             $userid = $USER->id;
         }
-    
-        // Get tenant mapping from tool_mutenancy_user table
-        $tenantuser = $DB->get_record('tool_mutenancy_user', ['userid' => $userid]);
-        if (!$tenantuser) {
+
+        try {
+            // Use Multi Tenant Tool API to get user's tenant ID
+            $tenantid = \tool_mutenancy\local\tenancy::get_user_tenantid($userid);
+            
+            if ($tenantid) {
+                // Get full tenant information
+                $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantid]);
+                return $tenant;
+            }
+        } catch (Exception $e) {
+            // Fallback to manual detection if API fails
+            debugging('Multi Tenant Tool API failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get user's tenant ID using Multi Tenant Tool API.
+     *
+     * @param int $userid User ID
+     * @return int|null Tenant ID or null if not found
+     */
+    public static function get_user_tenant_id($userid = null) {
+        global $USER;
+
+        // Check if Multi Tenant Tool is available
+        if (!class_exists('\tool_mutenancy\local\tenancy')) {
             return null;
         }
-    
-        // Get tenant info
-        $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantuser->tenantid]);
-        if (!$tenant) {
+
+        if ($userid === null) {
+            $userid = $USER->id;
+        }
+
+        try {
+            return \tool_mutenancy\local\tenancy::get_user_tenantid($userid);
+        } catch (Exception $e) {
+            debugging('Multi Tenant Tool API failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return null;
         }
-    
-        return $tenant;
-    }    
+    }
 
     /**
      * Debug function to check Multi Tenant Tool tables and structure.
