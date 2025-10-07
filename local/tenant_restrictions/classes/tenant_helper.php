@@ -45,36 +45,47 @@ class tenant_helper {
 
         // Try multiple approaches to find user's tenant
         
-        // Approach 1: Check tool_mutenancy_tenant_user table
-        if ($DB->record_exists('tool_mutenancy_tenant_user', ['userid' => $userid])) {
-            $tenantuser = $DB->get_record('tool_mutenancy_tenant_user', ['userid' => $userid]);
-            if ($tenantuser) {
-                $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantuser->tenantid]);
-                if ($tenant) {
-                    return $tenant;
-                }
+        // Approach 1: Check through tenant managers table (direct tenant management)
+        $tenantmanager = $DB->get_record('tool_mutenancy_manager', ['userid' => $userid]);
+        if ($tenantmanager) {
+            $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantmanager->tenantid]);
+            if ($tenant) {
+                return $tenant;
             }
         }
 
-        // Approach 2: Check through course enrollments and categories
+        // Approach 2: Check through tenant cohorts (primary tenant membership method)
+        $sql = "SELECT t.* 
+                FROM {tool_mutenancy_tenant} t
+                JOIN {cohort_members} cm ON t.cohortid = cm.cohortid
+                WHERE cm.userid = :userid
+                AND t.archived = 0";
+        $tenant = $DB->get_record_sql($sql, ['userid' => $userid]);
+        if ($tenant) {
+            return $tenant;
+        }
+
+        // Approach 3: Check through associated cohorts
+        $sql = "SELECT t.* 
+                FROM {tool_mutenancy_tenant} t
+                JOIN {cohort_members} cm ON t.assoccohortid = cm.cohortid
+                WHERE cm.userid = :userid
+                AND t.archived = 0";
+        $tenant = $DB->get_record_sql($sql, ['userid' => $userid]);
+        if ($tenant) {
+            return $tenant;
+        }
+
+        // Approach 4: Check through course enrollments and categories (fallback)
         $enrolledcourses = enrol_get_users_courses($userid);
         foreach ($enrolledcourses as $course) {
             $category = $DB->get_record('course_categories', ['id' => $course->category]);
             if ($category) {
                 // Check if this category is associated with a tenant
                 $tenant = $DB->get_record('tool_mutenancy_tenant', ['categoryid' => $category->id]);
-                if ($tenant) {
+                if ($tenant && $tenant->archived == 0) {
                     return $tenant;
                 }
-            }
-        }
-
-        // Approach 3: Check through tenant managers table
-        $tenantmanager = $DB->get_record('tool_mutenancy_manager', ['userid' => $userid]);
-        if ($tenantmanager) {
-            $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantmanager->tenantid]);
-            if ($tenant) {
-                return $tenant;
             }
         }
 
@@ -95,9 +106,9 @@ class tenant_helper {
         // Check available tables
         $tables_to_check = [
             'tool_mutenancy_tenant',
-            'tool_mutenancy_tenant_user', 
             'tool_mutenancy_manager',
-            'tool_mutenancy_tenant_category'
+            'tool_mutenancy_config',
+            'cohort_members'
         ];
         
         foreach ($tables_to_check as $table) {
@@ -118,6 +129,26 @@ class tenant_helper {
                 }
             } else {
                 $debug['tables'][$table] = 'not_exists';
+            }
+        }
+        
+        // Add tenant cohort information
+        if ($DB->get_manager()->table_exists('tool_mutenancy_tenant')) {
+            try {
+                $tenants = $DB->get_records('tool_mutenancy_tenant', ['archived' => 0]);
+                $debug['tenants'] = [];
+                foreach ($tenants as $tenant) {
+                    $debug['tenants'][] = [
+                        'id' => $tenant->id,
+                        'name' => $tenant->name,
+                        'idnumber' => $tenant->idnumber,
+                        'categoryid' => $tenant->categoryid,
+                        'cohortid' => $tenant->cohortid,
+                        'assoccohortid' => $tenant->assoccohortid
+                    ];
+                }
+            } catch (Exception $e) {
+                $debug['tenants_error'] = $e->getMessage();
             }
         }
         
