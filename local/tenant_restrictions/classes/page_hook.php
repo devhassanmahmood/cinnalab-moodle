@@ -41,11 +41,89 @@ class page_hook {
         // Convert to JavaScript array
         $js_allowed_categories = json_encode($allowed_categories);
 
-        // Inject JavaScript to filter categories
+        // Inject JavaScript to filter categories using inline approach
         $js_code = "
-        require(['local_tenant_restrictions/category_filter', 'local_tenant_restrictions/course_form_filter'], function(CategoryFilter, CourseFormFilter) {
-            CategoryFilter.init({$js_allowed_categories});
-            CourseFormFilter.init({$js_allowed_categories});
+        require(['jquery'], function($) {
+            // Store configuration
+            window.tenantRestrictions = {
+                allowedCategories: {$js_allowed_categories},
+                tenantCategory: " . \local_tenant_restrictions\tenant_helper::get_tenant_category() . "
+            };
+            
+            // Filter category dropdowns
+            function filterCategoryDropdowns(allowedCategories) {
+                if (!allowedCategories || allowedCategories.length === 0) {
+                    return;
+                }
+                
+                var selectors = [
+                    'select[name=\"category\"]',
+                    'select[name=\"categoryid\"]',
+                    'select[id*=\"id_category\"]',
+                    'select[id*=\"category\"]',
+                    '#id_category',
+                    '#id_categoryid'
+                ];
+                
+                selectors.forEach(function(selector) {
+                    $(selector).each(function() {
+                        var $select = $(this);
+                        var $options = $select.find('option');
+                        
+                        $options.each(function() {
+                            var $option = $(this);
+                            var value = parseInt($option.val());
+                            
+                            // Keep empty/default options
+                            if (value === 0 || value === '' || $option.text().trim() === '' || 
+                                $option.text().indexOf('Choose') !== -1 || 
+                                $option.text().indexOf('Select') !== -1) {
+                                return;
+                            }
+                            
+                            // Hide options not in allowed categories
+                            if (allowedCategories.indexOf(value) === -1) {
+                                $option.hide();
+                            }
+                        });
+                    });
+                });
+            }
+            
+            // Modify course creation links
+            function modifyCourseCreationLinks(tenantCategory) {
+                if (!tenantCategory) {
+                    return;
+                }
+                
+                $('a[href*=\"course/edit.php\"]').each(function() {
+                    var $link = $(this);
+                    var href = $link.attr('href');
+                    
+                    if (href.indexOf('category=') === -1) {
+                        var separator = href.indexOf('?') !== -1 ? '&' : '?';
+                        var newHref = href + separator + 'category=' + tenantCategory;
+                        $link.attr('href', newHref);
+                    }
+                });
+            }
+            
+            // Apply filtering immediately
+            filterCategoryDropdowns(window.tenantRestrictions.allowedCategories);
+            modifyCourseCreationLinks(window.tenantRestrictions.tenantCategory);
+            
+            // Set up interval for dynamic content
+            setInterval(function() {
+                filterCategoryDropdowns(window.tenantRestrictions.allowedCategories);
+                modifyCourseCreationLinks(window.tenantRestrictions.tenantCategory);
+            }, 1000);
+            
+            // Listen for form changes
+            $(document).on('focus click', 'select[name=\"category\"], select[name=\"categoryid\"], .form-autocomplete input', function() {
+                setTimeout(function() {
+                    filterCategoryDropdowns(window.tenantRestrictions.allowedCategories);
+                }, 200);
+            });
         });
         ";
 

@@ -88,14 +88,16 @@ class course_management_redirect {
             if ($tenant_category) {
                 // Inject JavaScript to modify "Add new course" links
                 $js_code = "
-                $(document).ready(function() {
-                    // Modify all 'Add new course' links to include tenant category
-                    $('a[href*=\"course/edit.php\"]').each(function() {
-                        var href = $(this).attr('href');
-                        if (href.indexOf('category=') === -1) {
-                            var separator = href.indexOf('?') !== -1 ? '&' : '?';
-                            $(this).attr('href', href + separator + 'category={$tenant_category}');
-                        }
+                require(['jquery'], function($) {
+                    $(document).ready(function() {
+                        // Modify all 'Add new course' links to include tenant category
+                        $('a[href*=\"course/edit.php\"]').each(function() {
+                            var href = $(this).attr('href');
+                            if (href.indexOf('category=') === -1) {
+                                var separator = href.indexOf('?') !== -1 ? '&' : '?';
+                                $(this).attr('href', href + separator + 'category={$tenant_category}');
+                            }
+                        });
                     });
                 });
                 ";

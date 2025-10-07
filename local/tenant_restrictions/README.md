@@ -110,8 +110,7 @@ local/tenant_restrictions/
 │       ├── before_http_headers_hook.php # HTTP headers hook
 │       └── before_footer_hook.php       # Footer hook
 ├── amd/src/
-│   ├── tenant_restrictions.js     # JavaScript for restrictions
-│   └── category_filter.js         # JavaScript for category filtering
+│   └── (AMD modules removed - using inline JavaScript approach)
 └── lang/en/
     └── local_tenant_restrictions.php  # Language strings
 ```
