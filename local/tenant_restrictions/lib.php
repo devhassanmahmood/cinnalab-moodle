@@ -176,5 +176,34 @@ function local_tenant_restrictions_filter_breadcrumbs($breadcrumbs) {
     return $filtered_breadcrumbs;
 }
 
+/**
+ * Hook to override capability check for course category changes.
+ * This prevents tenant users from seeing the category dropdown.
+ *
+ * @param string $capability The capability being checked
+ * @param context $context The context where capability is checked
+ * @param int $userid User ID
+ * @return bool|null True if allowed, false if denied, null if no override
+ */
+function local_tenant_restrictions_override_capability($capability, $context, $userid) {
+    // Only override the specific capability we want to restrict
+    if ($capability !== 'moodle/course:changecategory') {
+        return null; // No override for other capabilities
+    }
+
+    // Only apply to course category contexts
+    if ($context->contextlevel !== CONTEXT_COURSECAT) {
+        return null;
+    }
+
+    // Check if user has tenant restrictions
+    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access($userid)) {
+        return null; // No override for non-tenant users
+    }
+
+    // For tenant users, deny the capability to change categories
+    return false;
+}
+
 // Legacy callback functions removed - now using new hook system
 // See db/hooks.php for new hook registrations

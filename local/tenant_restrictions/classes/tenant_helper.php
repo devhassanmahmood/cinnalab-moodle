@@ -272,4 +272,5 @@ class tenant_helper {
         $tenant = self::get_user_tenant($userid);
         return $tenant ? $tenant->categoryid : null;
     }
+
 }
