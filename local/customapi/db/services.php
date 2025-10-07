@@ -66,9 +66,9 @@ $functions = [
         'ajax' => true,
     ],    
     'local_customapi_get_partner_participation' => [
-        'classname'   => 'local_customapi\external\api',
+        'classname'   => 'local_customapi_external',
         'methodname'  => 'get_partner_participation',
-        'classpath'   => 'local/customapi/classes/external/api.php',
+        'classpath'   => 'local/customapi/externallib.php',
         'description' => 'Get partner participation percentage and detailed user progress in a tenant',
         'type'        => 'read',
         'capabilities'=> 'moodle/course:view',
