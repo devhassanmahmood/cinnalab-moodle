@@ -175,3 +175,19 @@ function local_tenant_restrictions_filter_breadcrumbs($breadcrumbs) {
 
     return $filtered_breadcrumbs;
 }
+
+/**
+ * Hook to restrict course management page access.
+ */
+function local_tenant_restrictions_before_footer() {
+    \local_tenant_restrictions\page_hook::inject_restrictions();
+}
+
+/**
+ * Hook to restrict course management page.
+ */
+function local_tenant_restrictions_before_http_headers() {
+    \local_tenant_restrictions\course_management_redirect::redirect_course_management();
+    \local_tenant_restrictions\course_management_redirect::redirect_course_creation();
+    \local_tenant_restrictions\course_management_redirect::redirect_category_access();
+}

@@ -62,3 +62,7 @@ $string['quick_actions'] = 'Quick Actions';
 $string['edit_settings'] = 'Edit Settings';
 $string['manage_roles'] = 'Manage Roles';
 $string['assign_roles'] = 'Assign Roles';
+$string['course_management'] = 'Course Management';
+$string['courses'] = 'Courses';
+$string['nocourses'] = 'No courses found';
+$string['categorynotfound'] = 'Category not found';

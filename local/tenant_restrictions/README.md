@@ -6,9 +6,12 @@ A Moodle local plugin that enforces tenant-level restrictions on user roles for 
 
 - **Role-based Access Control**: Enforces restrictions based on tenant user roles (Vendor Admin, Partner Manager, Partner, Partner Team Member)
 - **Category Filtering**: Restricts course creation and management to tenant categories only
-- **Navigation Management**: Dynamically adds "Manage Tenant" menu for Vendor Admin users
+- **Navigation Management**: Dynamically adds "Manage Tenant" and "Course Management" menus for Vendor Admin users
 - **Breadcrumb Filtering**: Removes access to "Manage Categories" links outside tenant scope
 - **Event-based Restrictions**: Uses Moodle events to enforce restrictions in real-time
+- **Course Management Redirect**: Redirects tenant users to custom course management page showing only tenant categories
+- **JavaScript Filtering**: Client-side filtering of course category dropdowns and navigation elements
+- **Custom Course Management**: Dedicated course management page for tenant users
 
 ## User Roles
 
@@ -88,13 +91,23 @@ local/tenant_restrictions/
 ├── lib.php                        # Main library functions and hooks
 ├── settings.php                   # Plugin settings
 ├── manage_tenant.php              # Manage tenant page
+├── tenant_course_management.php   # Custom course management page
+├── course_management.php          # Course management redirect
+├── course_edit.php                # Course creation redirect
 ├── db/
 │   ├── access.php                 # Capabilities definition
 │   └── events.php                 # Event observers
 ├── classes/
 │   ├── tenant_helper.php          # Tenant helper functions
 │   ├── navigation_extension.php   # Navigation extensions
-│   └── event_observers.php        # Event observers
+│   ├── event_observers.php        # Event observers
+│   ├── course_filter.php          # Course filtering functions
+│   ├── course_management_hook.php # Course management hooks
+│   ├── page_hook.php              # Page-level hooks
+│   └── course_management_redirect.php # Course management redirects
+├── amd/src/
+│   ├── tenant_restrictions.js     # JavaScript for restrictions
+│   └── category_filter.js         # JavaScript for category filtering
 └── lang/en/
     └── local_tenant_restrictions.php  # Language strings
 ```
@@ -121,10 +134,26 @@ local/tenant_restrictions/
 2. **Users Can Access Other Categories**: Check capability assignments
 3. **Navigation Menu Missing**: Verify Vendor Admin role and capabilities
 4. **Redirects Not Working**: Check event observers are registered
+5. **Admin Page Duplicate Errors**: Fixed in latest version - ensure you're using the updated settings.php
+
+### Installation Errors Fixed
+
+**Issue**: "Duplicate admin page name: local_tenant_restrictions"
+**Solution**: The settings.php file has been updated to avoid duplicate admin page creation.
+
+**Issue**: "Navigation node intersect: Adding a node that already exists"
+**Solution**: Navigation extension now checks for existing nodes before adding new ones.
 
 ### Debug Mode
 
 Enable debug mode to see detailed logging of restriction enforcement.
+
+### Test Plugin
+
+Use the test script to verify plugin functionality:
+- Navigate to `/local/tenant_restrictions/test_plugin.php`
+- Run comprehensive tests to check plugin status
+- Verify all components are working correctly
 
 ## Support
 

@@ -84,6 +84,11 @@
 
 ### Step 7: Test the Installation
 
+#### Run Plugin Test Script
+1. **Login as Administrator**
+2. **Navigate to**: `/local/tenant_restrictions/test_plugin.php`
+3. **Review Test Results**: Check all components are working correctly
+
 #### Test Vendor Admin Access
 1. **Login as Vendor Admin user**
 2. **Verify**:
@@ -133,6 +138,16 @@
 - **Check**: `restrict_course_creation` setting is enabled
 - **Check**: User has appropriate role
 - **Solution**: Verify settings and role assignments
+
+#### 6. Duplicate Admin Page Errors (FIXED)
+- **Issue**: "Duplicate admin page name: local_tenant_restrictions"
+- **Solution**: Updated settings.php to avoid duplicate admin page creation
+- **Action**: Use the latest version of the plugin files
+
+#### 7. Navigation Node Intersection Errors (FIXED)
+- **Issue**: "Navigation node intersect: Adding a node that already exists"
+- **Solution**: Navigation extension now checks for existing nodes before adding
+- **Action**: Use the latest version of the plugin files
 
 ### Debug Mode
 

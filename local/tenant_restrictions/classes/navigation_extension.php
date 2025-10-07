@@ -55,15 +55,25 @@ class navigation_extension {
                 return;
             }
 
-            // Add "Manage Tenant" menu item
-            $managetenant = $usermenu->add(
-                get_string('managetenant_nav', 'local_tenant_restrictions'),
-                new \moodle_url('/local/tenant_restrictions/manage_tenant.php'),
-                \navigation_node::TYPE_CUSTOM,
-                null,
-                'tenant_managetenant'
-            );
-            $managetenant->set_icon(new \pix_icon('i/settings', ''));
+        // Add "Manage Tenant" menu item
+        $managetenant = $usermenu->add(
+            get_string('managetenant_nav', 'local_tenant_restrictions'),
+            new \moodle_url('/local/tenant_restrictions/manage_tenant.php'),
+            \navigation_node::TYPE_CUSTOM,
+            null,
+            'tenant_managetenant'
+        );
+        $managetenant->set_icon(new \pix_icon('i/settings', ''));
+        
+        // Add "Course Management" menu item for tenant
+        $coursemgmt = $usermenu->add(
+            get_string('course_management', 'local_tenant_restrictions'),
+            new \moodle_url('/local/tenant_restrictions/tenant_course_management.php'),
+            \navigation_node::TYPE_CUSTOM,
+            null,
+            'tenant_course_management'
+        );
+        $coursemgmt->set_icon(new \pix_icon('i/course', ''));
         } catch (Exception $e) {
             // Log error but don't break the page
             debugging('Tenant restrictions navigation error: ' . $e->getMessage(), DEBUG_DEVELOPER);
