@@ -96,7 +96,8 @@ local/tenant_restrictions/
 ├── course_edit.php                # Course creation redirect
 ├── db/
 │   ├── access.php                 # Capabilities definition
-│   └── events.php                 # Event observers
+│   ├── events.php                 # Event observers
+│   └── hooks.php                  # Hook registrations
 ├── classes/
 │   ├── tenant_helper.php          # Tenant helper functions
 │   ├── navigation_extension.php   # Navigation extensions
@@ -104,7 +105,10 @@ local/tenant_restrictions/
 │   ├── course_filter.php          # Course filtering functions
 │   ├── course_management_hook.php # Course management hooks
 │   ├── page_hook.php              # Page-level hooks
-│   └── course_management_redirect.php # Course management redirects
+│   ├── course_management_redirect.php # Course management redirects
+│   └── hook/
+│       ├── before_http_headers_hook.php # HTTP headers hook
+│       └── before_footer_hook.php       # Footer hook
 ├── amd/src/
 │   ├── tenant_restrictions.js     # JavaScript for restrictions
 │   └── category_filter.js         # JavaScript for category filtering

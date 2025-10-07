@@ -14,23 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_tenant_restrictions\hook;
+
+use core\hook\output\before_http_headers;
+
 /**
- * Tenant restrictions plugin version.
+ * Hook for before_http_headers to handle tenant restrictions.
  *
  * @package     local_tenant_restrictions
  * @copyright   2025 CinnaLab
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class before_http_headers_hook {
 
-defined('MOODLE_INTERNAL') || die();
-
-/** @var stdClass $plugin */
-$plugin->component = 'local_tenant_restrictions';
-$plugin->version = 2025010703;
-$plugin->requires = 2024042200; // Moodle 4.4+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.0';
-
-$plugin->dependencies = [
-    'tool_mutenancy' => 2025080950,
-];
+    /**
+     * Handle the before_http_headers hook.
+     *
+     * @param before_http_headers $hook
+     */
+    public static function handle(before_http_headers $hook) {
+        \local_tenant_restrictions\course_management_redirect::redirect_course_management();
+        \local_tenant_restrictions\course_management_redirect::redirect_course_creation();
+        \local_tenant_restrictions\course_management_redirect::redirect_category_access();
+    }
+}

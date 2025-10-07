@@ -52,6 +52,22 @@
 - Added proper error messages and debugging
 - Added Multi Tenant Tool dependency checks
 
+### 5. Moodle 5.0 Hook Migration
+**Issue**: Legacy callback functions deprecated in Moodle 5.0
+**Error**: "Callback before_http_headers should be migrated to new hook callback"
+
+**Solution**: 
+- Migrated from legacy callback system to new hook system
+- Created proper hook classes for before_http_headers and before_footer_html_generation
+- Registered hooks in db/hooks.php
+- Removed deprecated callback functions from lib.php
+
+**Files Modified**:
+- `db/hooks.php` - New hook registration file
+- `classes/hook/before_http_headers_hook.php` - New hook handler
+- `classes/hook/before_footer_hook.php` - New hook handler
+- `lib.php` - Removed deprecated callback functions
+
 ## Updated Files
 
 ### Core Files

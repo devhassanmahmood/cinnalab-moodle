@@ -14,23 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_tenant_restrictions\hook;
+
+use core\hook\output\before_footer_html_generation;
+
 /**
- * Tenant restrictions plugin version.
+ * Hook for before_footer_html_generation to handle tenant restrictions.
  *
  * @package     local_tenant_restrictions
  * @copyright   2025 CinnaLab
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class before_footer_hook {
 
-defined('MOODLE_INTERNAL') || die();
-
-/** @var stdClass $plugin */
-$plugin->component = 'local_tenant_restrictions';
-$plugin->version = 2025010703;
-$plugin->requires = 2024042200; // Moodle 4.4+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.0';
-
-$plugin->dependencies = [
-    'tool_mutenancy' => 2025080950,
-];
+    /**
+     * Handle the before_footer_html_generation hook.
+     *
+     * @param before_footer_html_generation $hook
+     */
+    public static function handle(before_footer_html_generation $hook) {
+        \local_tenant_restrictions\page_hook::inject_restrictions();
+    }
+}

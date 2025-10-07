@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tenant restrictions plugin version.
+ * Hook callbacks for tenant restrictions plugin.
  *
  * @package     local_tenant_restrictions
  * @copyright   2025 CinnaLab
@@ -24,13 +24,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/** @var stdClass $plugin */
-$plugin->component = 'local_tenant_restrictions';
-$plugin->version = 2025010703;
-$plugin->requires = 2024042200; // Moodle 4.4+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.0';
-
-$plugin->dependencies = [
-    'tool_mutenancy' => 2025080950,
+$callbacks = [
+    [
+        'hook' => \core\hook\output\before_http_headers::class,
+        'callback' => [\local_tenant_restrictions\hook\before_http_headers_hook::class, 'handle'],
+    ],
+    [
+        'hook' => \core\hook\output\before_footer_html_generation::class,
+        'callback' => [\local_tenant_restrictions\hook\before_footer_hook::class, 'handle'],
+    ],
 ];
