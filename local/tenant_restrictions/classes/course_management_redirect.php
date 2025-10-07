@@ -27,20 +27,46 @@ class course_management_redirect {
 
     /**
      * Hook to redirect course management page for tenant users.
-     * Note: This function is now empty as we use the original Moodle pages.
      */
     public static function redirect_course_management() {
-        // Using original Moodle course management pages
-        // Category dropdown is hidden with JavaScript instead of redirecting
+        global $PAGE;
+
+        // Only apply restrictions to users with tenant restrictions
+        if (!tenant_helper::has_restricted_access()) {
+            return;
+        }
+
+        // Check if we're on the course management page
+        if ($PAGE->url->compare(new \moodle_url('/course/management.php'), URL_MATCH_BASE)) {
+            // Redirect to our custom tenant course management page
+            redirect(new \moodle_url('/local/tenant_restrictions/tenant_course_management.php'));
+        }
     }
 
     /**
      * Hook to redirect course creation page for tenant users.
-     * Note: This function is now empty as we use the original Moodle pages.
      */
     public static function redirect_course_creation() {
-        // Using original Moodle course creation pages
-        // Category dropdown is hidden with JavaScript instead of redirecting
+        global $PAGE;
+
+        // Only apply restrictions to users with tenant restrictions
+        if (!tenant_helper::has_restricted_access()) {
+            return;
+        }
+
+        // Check if we're on the course creation page
+        if ($PAGE->url->compare(new \moodle_url('/course/edit.php'), URL_MATCH_BASE)) {
+            $categoryid = optional_param('category', 0, PARAM_INT);
+            
+            // If no category specified or category not allowed, redirect to tenant category
+            if (!$categoryid || !tenant_helper::can_access_category($categoryid)) {
+                $tenant_category = tenant_helper::get_tenant_category();
+                if ($tenant_category) {
+                    // Redirect to tenant category course creation
+                    redirect(new \moodle_url('/course/edit.php', ['category' => $tenant_category]));
+                }
+            }
+        }
     }
 
     /**
