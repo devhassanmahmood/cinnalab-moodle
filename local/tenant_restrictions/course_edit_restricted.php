@@ -32,10 +32,8 @@ if (!$tenant_category) {
 $courseid = optional_param('id', 0, PARAM_INT);
 $category = optional_param('category', $tenant_category, PARAM_INT);
 
-// Ensure category is the tenant category
-if ($category != $tenant_category) {
-    $category = $tenant_category;
-}
+// Always force the category to be the tenant category
+$category = $tenant_category;
 
 // Build redirect URL with proper parameters
 $params = ['category' => $category];
@@ -43,5 +41,5 @@ if ($courseid) {
     $params['id'] = $courseid;
 }
 
-// Redirect to normal course edit with restricted category
+// Redirect to normal course edit with tenant category
 redirect(new moodle_url('/course/edit.php', $params));

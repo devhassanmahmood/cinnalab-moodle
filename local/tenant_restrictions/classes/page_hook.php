@@ -81,7 +81,7 @@ class page_hook {
                                 return;
                             }
                             
-                            // Remove options not in allowed categories completely
+                            // Keep tenant category, remove all others
                             if (allowedCategories.indexOf(value) === -1) {
                                 optionElement.remove();
                             }
@@ -91,6 +91,38 @@ class page_hook {
                 
                 // Also filter custom dropdown elements that Moodle creates
                 filterCustomDropdowns(allowedCategories);
+                
+                // Ensure tenant category is selected if only one category is allowed
+                if (allowedCategories.length === 1) {
+                    selectors.forEach(function(selector) {
+                        jQuery(selector).each(function() {
+                            var selectElement = jQuery(this);
+                            var tenantCategoryValue = allowedCategories[0];
+                            
+                            // Check if tenant category option exists
+                            var tenantOption = selectElement.find("option[value=\\"" + tenantCategoryValue + "\\"]");
+                            
+                            if (tenantOption.length === 0) {
+                                // If tenant category option doesn\'t exist, we need to find it from the original data
+                                // This shouldn\'t happen if filtering is working correctly
+                                console.log("Tenant category option not found, this indicates a filtering issue");
+                                return;
+                            }
+                            
+                            // Set the tenant category as selected
+                            selectElement.val(tenantCategoryValue);
+                            
+                            // Mark the option as selected
+                            tenantOption.prop("selected", true);
+                            
+                            // Trigger change event to update any custom UI
+                            selectElement.trigger("change");
+                            
+                            // Also trigger input event for custom dropdowns
+                            selectElement.trigger("input");
+                        });
+                    });
+                }
             }
             
             // Filter custom dropdown elements (autocomplete, select2, etc.)
@@ -121,6 +153,32 @@ class page_hook {
                         });
                     });
                 });
+                
+                // Ensure tenant category is selected in custom dropdowns
+                if (allowedCategories.length === 1) {
+                    var tenantCategoryValue = allowedCategories[0];
+                    
+                    // Find and select tenant category in custom dropdowns
+                    customSelectors.forEach(function(selector) {
+                        jQuery(selector).each(function() {
+                            var container = jQuery(this);
+                            var tenantItem = container.find("[data-value=\\"" + tenantCategoryValue + "\\"], [value=\\"" + tenantCategoryValue + "\\"]").first();
+                            
+                            if (tenantItem.length > 0) {
+                                // Mark as selected
+                                tenantItem.addClass("selected active");
+                                tenantItem.attr("aria-selected", "true");
+                                
+                                // Update associated input field if exists
+                                var input = container.find("input");
+                                if (input.length > 0) {
+                                    input.val(tenantItem.text());
+                                    input.attr("data-value", tenantCategoryValue);
+                                }
+                            }
+                        });
+                    });
+                }
             }
             
             // Modify course creation links

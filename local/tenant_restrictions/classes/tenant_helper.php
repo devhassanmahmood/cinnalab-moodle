@@ -43,19 +43,85 @@ class tenant_helper {
             $userid = $USER->id;
         }
 
-        // Check if user has tenantid set
-        $user = $DB->get_record('user', ['id' => $userid], 'id, tenantid');
-        if (!$user || empty($user->tenantid)) {
-            return null;
+        // Try multiple approaches to find user's tenant
+        
+        // Approach 1: Check tool_mutenancy_tenant_user table
+        if ($DB->record_exists('tool_mutenancy_tenant_user', ['userid' => $userid])) {
+            $tenantuser = $DB->get_record('tool_mutenancy_tenant_user', ['userid' => $userid]);
+            if ($tenantuser) {
+                $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantuser->tenantid]);
+                if ($tenant) {
+                    return $tenant;
+                }
+            }
         }
 
-        // Get tenant information
-        $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $user->tenantid]);
-        if (!$tenant) {
-            return null;
+        // Approach 2: Check through course enrollments and categories
+        $enrolledcourses = enrol_get_users_courses($userid);
+        foreach ($enrolledcourses as $course) {
+            $category = $DB->get_record('course_categories', ['id' => $course->category]);
+            if ($category) {
+                // Check if this category is associated with a tenant
+                $tenant = $DB->get_record('tool_mutenancy_tenant', ['categoryid' => $category->id]);
+                if ($tenant) {
+                    return $tenant;
+                }
+            }
         }
 
-        return $tenant;
+        // Approach 3: Check through tenant managers table
+        $tenantmanager = $DB->get_record('tool_mutenancy_manager', ['userid' => $userid]);
+        if ($tenantmanager) {
+            $tenant = $DB->get_record('tool_mutenancy_tenant', ['id' => $tenantmanager->tenantid]);
+            if ($tenant) {
+                return $tenant;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Debug function to check Multi Tenant Tool tables and structure.
+     * This can be called to understand the actual database structure.
+     *
+     * @return array Debug information about available tables and data
+     */
+    public static function debug_tenant_tables() {
+        global $DB;
+        
+        $debug = [];
+        
+        // Check available tables
+        $tables_to_check = [
+            'tool_mutenancy_tenant',
+            'tool_mutenancy_tenant_user', 
+            'tool_mutenancy_manager',
+            'tool_mutenancy_tenant_category'
+        ];
+        
+        foreach ($tables_to_check as $table) {
+            if ($DB->get_manager()->table_exists($table)) {
+                $debug['tables'][$table] = 'exists';
+                try {
+                    $count = $DB->count_records($table);
+                    $debug['tables'][$table . '_count'] = $count;
+                    
+                    if ($count > 0) {
+                        $sample = $DB->get_records($table, null, '', '*', 0, 1);
+                        if ($sample) {
+                            $debug['tables'][$table . '_sample'] = array_keys(reset($sample));
+                        }
+                    }
+                } catch (Exception $e) {
+                    $debug['tables'][$table . '_error'] = $e->getMessage();
+                }
+            } else {
+                $debug['tables'][$table] = 'not_exists';
+            }
+        }
+        
+        return $debug;
     }
 
     /**
