@@ -36,7 +36,7 @@ $PAGE->set_heading(get_string('course_management', 'local_tenant_restrictions'))
 
 echo $OUTPUT->header();
 
-echo $OUTPUT->heading(get_string('course_management', 'local_tenant_restrictions'));
+//echo $OUTPUT->heading(get_string('course_management', 'local_tenant_restrictions'));
 
 // Get tenant category information
 $category = \core_course_category::get($tenant_category);
