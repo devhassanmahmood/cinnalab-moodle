@@ -14,27 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Event observers for tenant restrictions.
- *
- * @package     local_tenant_restrictions
- * @copyright   2025 CinnaLab
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 defined('MOODLE_INTERNAL') || die();
 
 $observers = [
     [
-        'eventname' => '\core\event\course_created',
-        'callback' => '\local_tenant_restrictions\event_observers::course_created',
-    ],
-    [
-        'eventname' => '\core\event\course_category_viewed',
-        'callback' => '\local_tenant_restrictions\event_observers::category_viewed',
-    ],
-    [
-        'eventname' => '\core\event\course_viewed',
-        'callback' => '\local_tenant_restrictions\event_observers::course_viewed',
+        'eventname'   => '\core\event\course_edit_form_displayed',
+        'callback'    => '\local_tenant_restrictions\observers\course_form_observer::filter_category_dropdown',
+        'includefile' => '/local/tenant_restrictions/classes/observers/course_form_observer.php',
+        'priority'    => 1000,
     ],
 ];

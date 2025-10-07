@@ -34,6 +34,5 @@ class before_footer_hook {
      */
     public static function handle(before_footer_html_generation $hook) {
         \local_tenant_restrictions\page_hook::inject_restrictions();
-        \local_tenant_restrictions\hook\course_form_hook::handle();
     }
 }

@@ -216,18 +216,40 @@ class tenant_helper {
 
     /**
      * Get allowed category IDs for user.
+     * This includes the tenant's main category and all its subcategories.
      *
      * @param int $userid User ID
      * @return array Array of allowed category IDs
      */
     public static function get_allowed_categories($userid = null) {
+        global $DB;
+
         $tenant = self::get_user_tenant($userid);
         if (!$tenant) {
             return [];
         }
 
-        // Return only the tenant's category ID
-        return [$tenant->categoryid];
+        $tenant_category_id = $tenant->categoryid;
+        
+        // Get all subcategories under the tenant category
+        $sql = "SELECT id FROM {course_categories} 
+                WHERE path LIKE :path_pattern 
+                OR id = :category_id
+                ORDER BY path";
+        
+        $path_pattern = '%/' . $tenant_category_id . '/%';
+        
+        $categories = $DB->get_records_sql($sql, [
+            'path_pattern' => $path_pattern,
+            'category_id' => $tenant_category_id
+        ]);
+        
+        $allowed_categories = [];
+        foreach ($categories as $category) {
+            $allowed_categories[] = (int)$category->id;
+        }
+        
+        return $allowed_categories;
     }
 
     /**
