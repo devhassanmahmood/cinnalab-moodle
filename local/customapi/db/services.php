@@ -64,16 +64,7 @@ $functions = [
         'type' => 'write',
         'capabilities' => 'tool/mutenancy:admin,moodle/role:assign',
         'ajax' => true,
-    ],
-    'local_customapi_logout_user' => [
-        'classname'   => 'local_customapi_external',
-        'methodname'  => 'logout_user',
-        'classpath'   => 'local/customapi/externallib.php',
-        'description' => 'Force logout a user by ending their active sessions',
-        'type'        => 'write',
-        'capabilities'=> 'moodle/user:loginas',
-        'ajax'        => true,
-    ],
+    ],    
     'local_customapi_get_partner_participation' => [
         'classname'   => 'local_customapi\external\api',
         'methodname'  => 'get_partner_participation',
