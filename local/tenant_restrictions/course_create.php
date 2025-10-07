@@ -14,23 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Tenant restrictions plugin version.
- *
- * @package     local_tenant_restrictions
- * @copyright   2025 CinnaLab
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+require_once('../../config.php');
+require_once($CFG->libdir.'/adminlib.php');
 
-defined('MOODLE_INTERNAL') || die();
+// Check if user has restricted access
+if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
+    // If no restrictions, redirect to normal course creation
+    redirect(new moodle_url('/course/edit.php'));
+}
 
-/** @var stdClass $plugin */
-$plugin->component = 'local_tenant_restrictions';
-$plugin->version = 2025010704;
-$plugin->requires = 2024042200; // Moodle 4.4+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.0';
+$tenant_category = \local_tenant_restrictions\tenant_helper::get_tenant_category();
+if (!$tenant_category) {
+    throw new moodle_exception('notenant', 'local_tenant_restrictions');
+}
 
-$plugin->dependencies = [
-    'tool_mutenancy' => 2025080950,
-];
+// Redirect to course creation with tenant category pre-selected
+redirect(new moodle_url('/course/edit.php', ['category' => $tenant_category]));

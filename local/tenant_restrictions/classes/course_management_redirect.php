@@ -70,6 +70,42 @@ class course_management_redirect {
     }
 
     /**
+     * Hook to redirect course creation from "Add new course" links.
+     */
+    public static function redirect_course_creation_links() {
+        global $PAGE;
+
+        // Only apply restrictions to users with tenant restrictions
+        if (!tenant_helper::has_restricted_access()) {
+            return;
+        }
+
+        // Check if we're on pages that might have "Add new course" links
+        if ($PAGE->url->compare(new \moodle_url('/course/index.php'), URL_MATCH_BASE) ||
+            $PAGE->url->compare(new \moodle_url('/my/'), URL_MATCH_BASE)) {
+            
+            $tenant_category = tenant_helper::get_tenant_category();
+            if ($tenant_category) {
+                // Inject JavaScript to modify "Add new course" links
+                $js_code = "
+                $(document).ready(function() {
+                    // Modify all 'Add new course' links to include tenant category
+                    $('a[href*=\"course/edit.php\"]').each(function() {
+                        var href = $(this).attr('href');
+                        if (href.indexOf('category=') === -1) {
+                            var separator = href.indexOf('?') !== -1 ? '&' : '?';
+                            $(this).attr('href', href + separator + 'category={$tenant_category}');
+                        }
+                    });
+                });
+                ";
+                
+                $PAGE->requires->js_amd_inline($js_code);
+            }
+        }
+    }
+
+    /**
      * Hook to redirect category access for tenant users.
      */
     public static function redirect_category_access() {

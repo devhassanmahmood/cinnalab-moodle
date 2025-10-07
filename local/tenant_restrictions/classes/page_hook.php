@@ -43,8 +43,9 @@ class page_hook {
 
         // Inject JavaScript to filter categories
         $js_code = "
-        require(['local_tenant_restrictions/category_filter'], function(CategoryFilter) {
+        require(['local_tenant_restrictions/category_filter', 'local_tenant_restrictions/course_form_filter'], function(CategoryFilter, CourseFormFilter) {
             CategoryFilter.init({$js_allowed_categories});
+            CourseFormFilter.init({$js_allowed_categories});
         });
         ";
 

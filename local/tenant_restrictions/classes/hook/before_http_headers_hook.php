@@ -35,6 +35,7 @@ class before_http_headers_hook {
     public static function handle(before_http_headers $hook) {
         \local_tenant_restrictions\course_management_redirect::redirect_course_management();
         \local_tenant_restrictions\course_management_redirect::redirect_course_creation();
+        \local_tenant_restrictions\course_management_redirect::redirect_course_creation_links();
         \local_tenant_restrictions\course_management_redirect::redirect_category_access();
     }
 }
