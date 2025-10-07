@@ -81,9 +81,42 @@ class page_hook {
                                 return;
                             }
                             
-                            // Hide options not in allowed categories
+                            // Remove options not in allowed categories completely
                             if (allowedCategories.indexOf(value) === -1) {
-                                optionElement.hide();
+                                optionElement.remove();
+                            }
+                        });
+                    });
+                });
+                
+                // Also filter custom dropdown elements that Moodle creates
+                filterCustomDropdowns(allowedCategories);
+            }
+            
+            // Filter custom dropdown elements (autocomplete, select2, etc.)
+            function filterCustomDropdowns(allowedCategories) {
+                // Target various custom dropdown containers
+                var customSelectors = [
+                    ".form-autocomplete",
+                    ".autocomplete-suggestions",
+                    ".dropdown-menu",
+                    ".select2-results",
+                    ".ui-autocomplete",
+                    "[data-field=\\"category\\"]"
+                ];
+                
+                customSelectors.forEach(function(selector) {
+                    jQuery(selector).each(function() {
+                        var container = jQuery(this);
+                        
+                        // Find and remove unauthorized items
+                        container.find("li, .option, .item, .suggestion").each(function() {
+                            var item = jQuery(this);
+                            var dataValue = item.data("value") || item.attr("data-value") || item.attr("value");
+                            var value = parseInt(dataValue);
+                            
+                            if (value && allowedCategories.indexOf(value) === -1) {
+                                item.remove();
                             }
                         });
                     });
@@ -100,9 +133,9 @@ class page_hook {
                     var linkElement = jQuery(this);
                     var href = linkElement.attr("href");
                     
-                    if (href.indexOf("category=") === -1) {
-                        var separator = href.indexOf("?") !== -1 ? "&" : "?";
-                        var newHref = href + separator + "category=" + tenantCategory;
+                    // Replace course/edit.php with our restricted version
+                    if (href.indexOf("course/edit.php") !== -1) {
+                        var newHref = href.replace("course/edit.php", "local/tenant_restrictions/course_edit_restricted.php");
                         linkElement.attr("href", newHref);
                     }
                 });
@@ -118,11 +151,25 @@ class page_hook {
                 modifyCourseCreationLinks(window.tenantRestrictions.tenantCategory);
             }, 1000);
             
-            // Listen for form changes
+            // Listen for form changes and dropdown events
             jQuery(document).on("focus click", "select[name=\\"category\\"], select[name=\\"categoryid\\"], .form-autocomplete input", function() {
                 setTimeout(function() {
                     filterCategoryDropdowns(window.tenantRestrictions.allowedCategories);
                 }, 200);
+            });
+            
+            // Listen for dropdown opening events
+            jQuery(document).on("click focus", ".form-autocomplete input, [data-field=\\"category\\"] input", function() {
+                setTimeout(function() {
+                    filterCategoryDropdowns(window.tenantRestrictions.allowedCategories);
+                }, 100);
+            });
+            
+            // Listen for AJAX completions that might reload dropdown content
+            jQuery(document).ajaxComplete(function() {
+                setTimeout(function() {
+                    filterCategoryDropdowns(window.tenantRestrictions.allowedCategories);
+                }, 300);
             });
         });
         ';

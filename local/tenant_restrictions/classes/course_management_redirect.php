@@ -91,14 +91,16 @@ class course_management_redirect {
                 require(["jquery"], function(jQuery) {
                     jQuery(document).ready(function() {
                         // Modify all "Add new course" links to include tenant category
-                        jQuery("a[href*=\\"course/edit.php\\"]").each(function() {
-                            var linkElement = jQuery(this);
-                            var href = linkElement.attr("href");
-                            if (href.indexOf("category=") === -1) {
-                                var separator = href.indexOf("?") !== -1 ? "&" : "?";
-                                linkElement.attr("href", href + separator + "category=' . $tenant_category . '");
-                            }
-                        });
+                jQuery("a[href*=\\"course/edit.php\\"]").each(function() {
+                    var linkElement = jQuery(this);
+                    var href = linkElement.attr("href");
+                    
+                    // Replace course/edit.php with our restricted version
+                    if (href.indexOf("course/edit.php") !== -1) {
+                        var newHref = href.replace("course/edit.php", "local/tenant_restrictions/course_edit_restricted.php");
+                        linkElement.attr("href", newHref);
+                    }
+                });
                     });
                 });
                 ';
