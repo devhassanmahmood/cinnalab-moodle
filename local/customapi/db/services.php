@@ -75,7 +75,7 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE], // makes it available to mobile WS too
     ],
-];
+]:;
 
 $services = [
     'Custom API for React Integration' => [
