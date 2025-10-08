@@ -101,7 +101,7 @@ if (!empty($allowed_categories)) {
                     // Add edit action if user can manage course
                     if (has_capability('moodle/course:update', context_course::instance($course_info->id))) {
                         $actions[] = html_writer::link(
-                            new moodle_url('/local/tenant_restrictions/tenant_course_edit.php', ['id' => $course_info->id]),
+                            new moodle_url('/course/edit.php', ['id' => $course_info->id]),
                             get_string('edit'),
                             ['class' => 'btn btn-sm btn-secondary']
                         );
@@ -131,7 +131,7 @@ if (!empty($allowed_categories)) {
             if (has_capability('moodle/course:create', context_coursecat::instance($cat_id))) {
                 echo html_writer::tag('div', 
                     html_writer::link(
-                        new moodle_url('/local/tenant_restrictions/tenant_course_edit.php', ['category' => $cat_id]),
+                        new moodle_url('/course/edit.php', ['category' => $cat_id]),
                         get_string('createcourse', 'local_tenant_restrictions') . ' ' . $category->name,
                         ['class' => 'btn btn-primary btn-sm']
                     ),

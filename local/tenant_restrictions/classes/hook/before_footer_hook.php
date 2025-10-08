@@ -33,6 +33,10 @@ class before_footer_hook {
      * @param before_footer_html_generation $hook
      */
     public static function handle(before_footer_html_generation $hook) {
-        \local_tenant_restrictions\page_hook::inject_restrictions();
+        // Apply category filtering on course management page
+        \local_tenant_restrictions\page_restrictions::filter_course_management_page();
+        
+        // Apply category filtering on course edit page
+        \local_tenant_restrictions\page_restrictions::filter_course_edit_page();
     }
 }

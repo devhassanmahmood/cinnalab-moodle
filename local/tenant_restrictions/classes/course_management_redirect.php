@@ -27,55 +27,20 @@ class course_management_redirect {
 
     /**
      * Hook to redirect course management page for tenant users.
+     * Note: This function is now empty as we use original Moodle pages.
      */
     public static function redirect_course_management() {
-        global $PAGE;
-
-        // Only apply restrictions to users with tenant restrictions
-        if (!tenant_helper::has_restricted_access()) {
-            return;
-        }
-
-        // Check if we're on the course management page
-        if ($PAGE->url->compare(new \moodle_url('/course/management.php'), URL_MATCH_BASE)) {
-            // Redirect to our custom tenant course management page
-            redirect(new \moodle_url('/local/tenant_restrictions/tenant_course_management.php'));
-        }
+        // Using original Moodle course management pages
+        // Category filtering is handled by observer instead
     }
 
     /**
      * Hook to redirect course creation page for tenant users.
+     * Note: This function is now empty as we use original Moodle pages.
      */
     public static function redirect_course_creation() {
-        global $PAGE;
-
-        // Only apply restrictions to users with tenant restrictions
-        if (!tenant_helper::has_restricted_access()) {
-            return;
-        }
-
-        // Check if we're on the course creation/edit page
-        if ($PAGE->url->compare(new \moodle_url('/course/edit.php'), URL_MATCH_BASE)) {
-            $courseid = optional_param('id', 0, PARAM_INT);
-            $categoryid = optional_param('category', 0, PARAM_INT);
-            
-            // Redirect to our custom tenant course edit page
-            $redirect_params = [];
-            if ($courseid) {
-                $redirect_params['id'] = $courseid;
-            }
-            if ($categoryid && tenant_helper::can_access_category($categoryid)) {
-                $redirect_params['category'] = $categoryid;
-            } else {
-                // Use tenant category if no valid category specified
-                $tenant_category = tenant_helper::get_tenant_category();
-                if ($tenant_category) {
-                    $redirect_params['category'] = $tenant_category;
-                }
-            }
-            
-            redirect(new \moodle_url('/local/tenant_restrictions/tenant_course_edit.php', $redirect_params));
-        }
+        // Using original Moodle course creation pages
+        // Category filtering is handled by observer instead
     }
 
     /**
