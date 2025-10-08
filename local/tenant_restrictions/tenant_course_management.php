@@ -59,9 +59,15 @@ if (!empty($allowed_categories)) {
             
             $courses = $category->get_courses();
             foreach ($courses as $course) {
-                $course->category_id = $cat_id;
-                $course->category_name = $category->name;
-                $all_courses[] = $course;
+                // Create a new object to store course info with category data
+                $course_info = new stdClass();
+                $course_info->id = $course->id;
+                $course_info->fullname = $course->fullname;
+                $course_info->shortname = $course->shortname;
+                $course_info->category = $course->category;
+                $course_info->category_id = $cat_id;
+                $course_info->category_name = $category->name;
+                $all_courses[] = $course_info;
             }
         }
     }
@@ -76,8 +82,8 @@ if (!empty($allowed_categories)) {
             }
             
             // Get courses for this specific category
-            $category_courses = array_filter($all_courses, function($course) use ($cat_id) {
-                return $course->category_id == $cat_id;
+            $category_courses = array_filter($all_courses, function($course_info) use ($cat_id) {
+                return $course_info->category_id == $cat_id;
             });
             
             if (!empty($category_courses)) {
@@ -89,13 +95,13 @@ if (!empty($allowed_categories)) {
                     get_string('actions')
                 ];
                 
-                foreach ($category_courses as $course) {
+                foreach ($category_courses as $course_info) {
                     $actions = [];
                     
                     // Add edit action if user can manage course
-                    if (has_capability('moodle/course:update', context_course::instance($course->id))) {
+                    if (has_capability('moodle/course:update', context_course::instance($course_info->id))) {
                         $actions[] = html_writer::link(
-                            new moodle_url('/local/tenant_restrictions/tenant_course_edit.php', ['id' => $course->id]),
+                            new moodle_url('/local/tenant_restrictions/tenant_course_edit.php', ['id' => $course_info->id]),
                             get_string('edit'),
                             ['class' => 'btn btn-sm btn-secondary']
                         );
@@ -103,15 +109,15 @@ if (!empty($allowed_categories)) {
                     
                     // Add view action
                     $actions[] = html_writer::link(
-                        new moodle_url('/course/view.php', ['id' => $course->id]),
+                        new moodle_url('/course/view.php', ['id' => $course_info->id]),
                         get_string('view'),
                         ['class' => 'btn btn-sm btn-primary']
                     );
                     
                     $table->data[] = [
-                        $course->id,
-                        $course->fullname,
-                        $course->shortname,
+                        $course_info->id,
+                        $course_info->fullname,
+                        $course_info->shortname,
                         implode(' ', $actions)
                     ];
                 }

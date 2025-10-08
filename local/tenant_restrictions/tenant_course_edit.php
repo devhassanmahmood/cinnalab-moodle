@@ -16,7 +16,7 @@
 
 require_once('../../config.php');
 require_once($CFG->dirroot.'/course/edit_form.php');
-require_once($CFG->libdir.'/coursecatlib.php');
+// coursecatlib.php doesn't exist in newer Moodle versions - removed
 
 // Check if user has restricted access
 if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
