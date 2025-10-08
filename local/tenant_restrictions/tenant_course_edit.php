@@ -16,7 +16,6 @@
 
 require_once('../../config.php');
 require_once($CFG->dirroot.'/course/edit_form.php');
-// coursecatlib.php doesn't exist in newer Moodle versions - removed
 
 // Check if user has restricted access
 if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
@@ -63,11 +62,15 @@ if ($courseid) {
     $course = get_course($courseid);
     $PAGE->set_title(get_string('editcourse') . ': ' . $course->fullname);
     $PAGE->set_heading(get_string('editcourse'));
+    $context = context_course::instance($course->id);
 } else {
     // Creating new course
     $PAGE->set_title(get_string('addnewcourse'));
     $PAGE->set_heading(get_string('addnewcourse'));
+    $context = context_coursecat::instance($categoryid);
 }
+
+$PAGE->set_context($context);
 
 echo $OUTPUT->header();
 
@@ -102,17 +105,47 @@ class tenant_course_edit_form extends course_edit_form {
     }
 }
 
-// Initialize the form
+// Initialize the form with proper parameters
 if ($courseid) {
     // Editing existing course
     $course = get_course($courseid);
-    $mform = new tenant_course_edit_form(null, ['course' => $course, 'category' => $course->category]);
+    $editoroptions = [
+        'maxfiles' => EDITOR_UNLIMITED_FILES,
+        'maxbytes' => $CFG->maxbytes,
+        'trust' => false,
+        'context' => $context,
+        'noclean' => true,
+        'subdirs' => false
+    ];
+    $formdata = [
+        'course' => $course,
+        'category' => $course->category,
+        'editoroptions' => $editoroptions,
+        'returnto' => 'course',
+        'returnurl' => new moodle_url('/local/tenant_restrictions/tenant_course_management.php')
+    ];
+    $mform = new tenant_course_edit_form(null, $formdata);
 } else {
     // Creating new course
     $course = new stdClass();
     $course->id = 0;
     $course->category = $categoryid;
-    $mform = new tenant_course_edit_form(null, ['course' => $course, 'category' => $categoryid]);
+    $editoroptions = [
+        'maxfiles' => EDITOR_UNLIMITED_FILES,
+        'maxbytes' => $CFG->maxbytes,
+        'trust' => false,
+        'context' => $context,
+        'noclean' => true,
+        'subdirs' => false
+    ];
+    $formdata = [
+        'course' => $course,
+        'category' => $categoryid,
+        'editoroptions' => $editoroptions,
+        'returnto' => 'course',
+        'returnurl' => new moodle_url('/local/tenant_restrictions/tenant_course_management.php')
+    ];
+    $mform = new tenant_course_edit_form(null, $formdata);
 }
 
 // Handle form submission
