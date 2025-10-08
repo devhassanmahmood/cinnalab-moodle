@@ -53,9 +53,19 @@ if (!$categoryid) {
     $categoryid = $tenant_category;
 }
 
+// Ensure we have a valid category ID
+if (!$categoryid || !in_array($categoryid, $allowed_categories)) {
+    $categoryid = $tenant_category;
+}
+
+// Verify the category exists
+$category = \core_course_category::get($categoryid);
+if (!$category) {
+    throw new moodle_exception('invalidcategory', 'error');
+}
+
 // Set up the page
 $PAGE->set_url('/local/tenant_restrictions/tenant_course_edit.php');
-$PAGE->set_context(context_system::instance());
 
 if ($courseid) {
     // Editing existing course
@@ -64,10 +74,10 @@ if ($courseid) {
     $PAGE->set_heading(get_string('editcourse'));
     $context = context_course::instance($course->id);
 } else {
-    // Creating new course
+    // Creating new course - use system context to avoid category context issues
     $PAGE->set_title(get_string('addnewcourse'));
     $PAGE->set_heading(get_string('addnewcourse'));
-    $context = context_coursecat::instance($categoryid);
+    $context = context_system::instance();
 }
 
 $PAGE->set_context($context);
@@ -82,24 +92,29 @@ class tenant_course_edit_form extends course_edit_form {
         
         // Override the category field to show only tenant categories
         if ($mform = $this->_form) {
-            $category_element = $mform->getElement('category');
-            if ($category_element) {
-                // Get tenant categories
-                $allowed_categories = \local_tenant_restrictions\tenant_helper::get_allowed_categories();
-                
-                if (!empty($allowed_categories)) {
-                    // Get category options for allowed categories only
-                    $category_options = [];
-                    foreach ($allowed_categories as $cat_id) {
-                        $category = \core_course_category::get($cat_id);
-                        if ($category) {
-                            $category_options[$cat_id] = $category->get_formatted_name();
-                        }
-                    }
+            try {
+                $category_element = $mform->getElement('category');
+                if ($category_element) {
+                    // Get tenant categories
+                    $allowed_categories = \local_tenant_restrictions\tenant_helper::get_allowed_categories();
                     
-                    // Update the category element with filtered options
-                    $category_element->loadArray($category_options);
+                    if (!empty($allowed_categories)) {
+                        // Get category options for allowed categories only
+                        $category_options = [];
+                        foreach ($allowed_categories as $cat_id) {
+                            $category = \core_course_category::get($cat_id);
+                            if ($category) {
+                                $category_options[$cat_id] = $category->get_formatted_name();
+                            }
+                        }
+                        
+                        // Update the category element with filtered options
+                        $category_element->loadArray($category_options);
+                    }
                 }
+            } catch (Exception $e) {
+                // If there's an error with the category element, just continue
+                debugging('Error filtering category dropdown: ' . $e->getMessage(), DEBUG_DEVELOPER);
             }
         }
     }
