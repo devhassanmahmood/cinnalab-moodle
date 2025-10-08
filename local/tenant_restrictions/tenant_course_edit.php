@@ -74,7 +74,7 @@ echo $OUTPUT->header();
 // Override the course category list to show only tenant categories
 class tenant_course_edit_form extends course_edit_form {
     
-    protected function definition() {
+    public function definition() {
         parent::definition();
         
         // Override the category field to show only tenant categories
