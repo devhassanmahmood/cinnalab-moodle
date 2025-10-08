@@ -54,18 +54,27 @@ class course_management_redirect {
             return;
         }
 
-        // Check if we're on the course creation page
+        // Check if we're on the course creation/edit page
         if ($PAGE->url->compare(new \moodle_url('/course/edit.php'), URL_MATCH_BASE)) {
+            $courseid = optional_param('id', 0, PARAM_INT);
             $categoryid = optional_param('category', 0, PARAM_INT);
             
-            // If no category specified or category not allowed, redirect to tenant category
-            if (!$categoryid || !tenant_helper::can_access_category($categoryid)) {
+            // Redirect to our custom tenant course edit page
+            $redirect_params = [];
+            if ($courseid) {
+                $redirect_params['id'] = $courseid;
+            }
+            if ($categoryid && tenant_helper::can_access_category($categoryid)) {
+                $redirect_params['category'] = $categoryid;
+            } else {
+                // Use tenant category if no valid category specified
                 $tenant_category = tenant_helper::get_tenant_category();
                 if ($tenant_category) {
-                    // Redirect to tenant category course creation
-                    redirect(new \moodle_url('/course/edit.php', ['category' => $tenant_category]));
+                    $redirect_params['category'] = $tenant_category;
                 }
             }
+            
+            redirect(new \moodle_url('/local/tenant_restrictions/tenant_course_edit.php', $redirect_params));
         }
     }
 

@@ -63,6 +63,7 @@ $string['edit_settings'] = 'Edit Settings';
 $string['manage_roles'] = 'Manage Roles';
 $string['assign_roles'] = 'Assign Roles';
 $string['course_management'] = 'Course Management';
+$string['tenant_categories'] = 'Tenant Categories';
 $string['courses'] = 'Courses';
 $string['nocourses'] = 'No courses found';
 $string['categorynotfound'] = 'Category not found';

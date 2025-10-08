@@ -38,67 +38,101 @@ echo $OUTPUT->header();
 
 //echo $OUTPUT->heading(get_string('course_management', 'local_tenant_restrictions'));
 
-// Get tenant category information
-$category = \core_course_category::get($tenant_category);
-if ($category) {
-    echo html_writer::tag('h3', $category->name);
-    echo html_writer::tag('p', $category->description);
+// Get all allowed categories (tenant category + subcategories)
+$allowed_categories = \local_tenant_restrictions\tenant_helper::get_allowed_categories();
+
+if (!empty($allowed_categories)) {
+    echo html_writer::tag('h3', get_string('tenant_categories', 'local_tenant_restrictions'));
     
-    // Show courses in this category
-    $courses = $category->get_courses();
-    if (!empty($courses)) {
-        echo html_writer::tag('h4', get_string('courses', 'local_tenant_restrictions'));
-        
-        $table = new html_table();
-        $table->head = [
-            get_string('course'),
-            get_string('fullname'),
-            get_string('shortname'),
-            get_string('actions')
-        ];
-        
-        foreach ($courses as $course) {
-            $actions = [];
-            
-            // Add edit action if user can manage course
-            if (has_capability('moodle/course:update', context_course::instance($course->id))) {
-                $actions[] = html_writer::link(
-                    new moodle_url('/course/edit.php', ['id' => $course->id]),
-                    get_string('edit'),
-                    ['class' => 'btn btn-sm btn-secondary']
-                );
-            }
-            
-            // Add view action
-            $actions[] = html_writer::link(
-                new moodle_url('/course/view.php', ['id' => $course->id]),
-                get_string('view'),
-                ['class' => 'btn btn-sm btn-primary']
-            );
-            
-            $table->data[] = [
-                $course->id,
-                $course->fullname,
-                $course->shortname,
-                implode(' ', $actions)
+    $all_courses = [];
+    $category_info = [];
+    
+    // Get courses from all allowed categories
+    foreach ($allowed_categories as $cat_id) {
+        $category = \core_course_category::get($cat_id);
+        if ($category) {
+            $category_info[$cat_id] = [
+                'name' => $category->name,
+                'description' => $category->description,
+                'path' => $category->path
             ];
+            
+            $courses = $category->get_courses();
+            foreach ($courses as $course) {
+                $course->category_id = $cat_id;
+                $course->category_name = $category->name;
+                $all_courses[] = $course;
+            }
         }
-        
-        echo html_writer::table($table);
-    } else {
-        echo html_writer::tag('p', get_string('nocourses', 'local_tenant_restrictions'));
     }
     
-    // Add create course button
-    if (has_capability('moodle/course:create', context_coursecat::instance($tenant_category))) {
-        echo html_writer::tag('div', 
-            html_writer::link(
-                new moodle_url('/course/edit.php', ['category' => $tenant_category]),
-                get_string('createcourse', 'local_tenant_restrictions'),
-                ['class' => 'btn btn-primary']
-            ),
-            ['class' => 'mt-3']
-        );
+    // Display categories with their courses
+    foreach ($allowed_categories as $cat_id) {
+        $category = \core_course_category::get($cat_id);
+        if ($category) {
+            echo html_writer::tag('h4', $category->name);
+            if (!empty($category->description)) {
+                echo html_writer::tag('p', $category->description);
+            }
+            
+            // Get courses for this specific category
+            $category_courses = array_filter($all_courses, function($course) use ($cat_id) {
+                return $course->category_id == $cat_id;
+            });
+            
+            if (!empty($category_courses)) {
+                $table = new html_table();
+                $table->head = [
+                    get_string('course'),
+                    get_string('fullname'),
+                    get_string('shortname'),
+                    get_string('actions')
+                ];
+                
+                foreach ($category_courses as $course) {
+                    $actions = [];
+                    
+                    // Add edit action if user can manage course
+                    if (has_capability('moodle/course:update', context_course::instance($course->id))) {
+                        $actions[] = html_writer::link(
+                            new moodle_url('/local/tenant_restrictions/tenant_course_edit.php', ['id' => $course->id]),
+                            get_string('edit'),
+                            ['class' => 'btn btn-sm btn-secondary']
+                        );
+                    }
+                    
+                    // Add view action
+                    $actions[] = html_writer::link(
+                        new moodle_url('/course/view.php', ['id' => $course->id]),
+                        get_string('view'),
+                        ['class' => 'btn btn-sm btn-primary']
+                    );
+                    
+                    $table->data[] = [
+                        $course->id,
+                        $course->fullname,
+                        $course->shortname,
+                        implode(' ', $actions)
+                    ];
+                }
+                
+                echo html_writer::table($table);
+            } else {
+                echo html_writer::tag('p', get_string('nocourses', 'local_tenant_restrictions'));
+            }
+            
+            // Add create course button for this category
+            if (has_capability('moodle/course:create', context_coursecat::instance($cat_id))) {
+                echo html_writer::tag('div', 
+                    html_writer::link(
+                        new moodle_url('/local/tenant_restrictions/tenant_course_edit.php', ['category' => $cat_id]),
+                        get_string('createcourse', 'local_tenant_restrictions') . ' ' . $category->name,
+                        ['class' => 'btn btn-primary btn-sm']
+                    ),
+                    ['class' => 'mt-2 mb-3']
+                );
+            }
+        }
     }
 } else {
     echo html_writer::tag('p', get_string('categorynotfound', 'local_tenant_restrictions'));
