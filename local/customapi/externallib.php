@@ -160,17 +160,23 @@ class local_customapi_external extends external_api {
         return new external_function_parameters([
             'email' => new external_value(PARAM_EMAIL, 'User email', VALUE_REQUIRED),
             'tenant' => new external_value(PARAM_INT, 'Tenant ID', VALUE_REQUIRED),
-            'role_id' => new external_value(PARAM_INT, 'Role ID', VALUE_REQUIRED),
             'firstname' => new external_value(PARAM_TEXT, 'First name', VALUE_DEFAULT, 'Tenant'),
             'lastname' => new external_value(PARAM_TEXT, 'Last name', VALUE_DEFAULT, 'Admin'),
             'password' => new external_value(PARAM_RAW, 'Password (optional)', VALUE_DEFAULT, ''),
         ]);
     }
 
-    public static function create_user_in_tenant($email, $tenant, $role_id, $firstname = 'Tenant', $lastname = 'Admin', $password = '') {
+    public static function create_user_in_tenant($email, $tenant, $firstname = 'Tenant', $lastname = 'Admin', $password = '') {
         global $DB, $CFG;
 
-        $params = self::validate_parameters(self::create_user_in_tenant_parameters(), compact('email', 'tenant', 'role_id', 'firstname', 'lastname', 'password'));
+        $params = self::validate_parameters(self::create_user_in_tenant_parameters(), compact('email', 'tenant', 'firstname', 'lastname', 'password'));
+
+        // Fetch the vendor role by slug
+        $vendor_role = $DB->get_record('role', ['shortname' => 'vendor']);
+        if (!$vendor_role) {
+            throw new moodle_exception('rolenotfound', 'local_customapi', '', 'vendor');
+        }
+        $role_id = $vendor_role->id;
 
         require_once($CFG->dirroot . '/user/lib.php');
         require_once($CFG->dirroot . '/lib/accesslib.php');
@@ -232,16 +238,27 @@ class local_customapi_external extends external_api {
         require_capability('moodle/user:create', $categorycontext);
         require_capability('tool/mutenancy:admin', $categorycontext);
 
-        // 3. Assign the chosen role in the tenant’s category, and scope it to the tenant.
+        // 3. Assign the chosen role in the tenant's category, and scope it to the tenant.
         if ($categorycontext) {
             role_assign(
                 $role_id,      // roleid (e.g. Vendor role id)
                 $userid,        // userid
-                $categorycontext->id,  // contextid (tenant’s category)
+                $categorycontext->id,  // contextid (tenant's category)
                 'tool_mutenancy',      // component (marks this as mutenancy assignment)
                 $tenant            // itemid (links to tenant)
             );
         }
+
+        // 4. Also assign the role in the system context for tenant-wide permissions.
+        // This allows the tenant admin/vendor to manage the entire tenant.
+        $systemcontext = context_system::instance();
+        role_assign(
+            $role_id,           // roleid (e.g. Vendor role id)
+            $userid,            // userid
+            $systemcontext->id, // contextid (system context for tenant-wide access)
+            'tool_mutenancy',   // component (marks this as mutenancy assignment)
+            $tenant             // itemid (links to tenant)
+        );
         
         return ['user_id' => (int)$userid];
     }

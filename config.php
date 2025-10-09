@@ -31,11 +31,11 @@ $CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
 $CFG->directorypermissions = 02777;
 
 // Debug settings
-$CFG->debug = getenv('MOODLE_DEBUG') ? (E_ALL) : (E_ALL & ~E_NOTICE & ~E_DEPRECATED);
-$CFG->debugdisplay = getenv('MOODLE_DEBUG_DISPLAY') ? 1 : 0;
-$CFG->debugstring = '';
-$CFG->debugemail = '';
-$CFG->debugpageinfo = getenv('MOODLE_DEBUG_PAGEINFO') ? 1 : 0;
+// $CFG->debug = getenv('MOODLE_DEBUG') ? (E_ALL) : (E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+// $CFG->debugdisplay = getenv('MOODLE_DEBUG_DISPLAY') ? 1 : 0;
+// $CFG->debugstring = '';
+// $CFG->debugemail = '';
+// $CFG->debugpageinfo = getenv('MOODLE_DEBUG_PAGEINFO') ? 1 : 0;
 
 // Cache settings
 $CFG->cachejs = 1;

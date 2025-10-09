@@ -28,7 +28,7 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "require": {
+   /* "require": {
         "php": ">=8.2.0",
         "ext-iconv": "*",
         "ext-mbstring": "*",
@@ -49,6 +49,30 @@
         "ext-hash": "*",
         "ext-fileinfo": "*",
         "ext-sodium": "*"
+    },*/
+    "require": {
+        "php": ">=8.2.0",
+        "ext-iconv": "*",
+        "ext-mbstring": "*",
+        "ext-curl": "*",
+        "ext-openssl": "*",
+        "ext-ctype": "*",
+        "ext-zip": "*",
+        "ext-zlib": "*",
+        "ext-gd": "*",
+        "ext-simplexml": "*",
+        "ext-spl": "*",
+        "ext-pcre": "*",
+        "ext-dom": "*",
+        "ext-xml": "*",
+        "ext-xmlreader": "*",
+        "ext-intl": "*",
+        "ext-json": "*",
+        "ext-hash": "*",
+        "ext-fileinfo": "*",
+        "ext-sodium": "*",        
+        "ext-pgsql": "*",
+        "ext-pdo_pgsql": "*"
     },
     "suggest": {
         "ext-mysqli": "Needed when Moodle uses MySQL or MariaDB database.",
