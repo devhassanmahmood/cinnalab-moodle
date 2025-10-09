@@ -25,7 +25,15 @@ $CFG->dataroot = __DIR__ . '/moodledata';
 $CFG->admin     = 'admin';
 
 // S3 File Storage Configuration using objectfs tool
+//$CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
+$CFG->filedir = '/app/moodledata/filedir';
+$CFG->localcachedir = '/app/moodledata/localcache';
+$CFG->tempdir = '/app/moodledata/temp';
+$CFG->cachedir = '/app/moodledata/cache';
+
 $CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
+$CFG->tool_objectfs_use_presigned_urls = false; // Force Moodle to serve via pluginfile.php
+
 
 // Directory permissions
 $CFG->directorypermissions = 02777;
