@@ -170,7 +170,7 @@ class local_customapi_external extends external_api {
     public static function create_user_in_tenant($email, $tenant, $firstname = 'Tenant', $lastname = 'Admin', $password = '', $role_id = 5) {
         global $DB, $CFG;
 
-        $params = self::validate_parameters(self::create_user_in_tenant_parameters(), compact('email', 'tenant', 'firstname', 'lastname', 'password'));
+        $params = self::validate_parameters(self::create_user_in_tenant_parameters(), compact('email', 'tenant', 'firstname', 'lastname', 'password', 'role_id'));
 
         // Fetch the vendor role by slug
         $vendor_role = $DB->get_record('role', ['shortname' => 'vendor']);
