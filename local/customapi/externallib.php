@@ -163,7 +163,7 @@ class local_customapi_external extends external_api {
             'firstname' => new external_value(PARAM_TEXT, 'First name', VALUE_DEFAULT, 'Tenant'),
             'lastname' => new external_value(PARAM_TEXT, 'Last name', VALUE_DEFAULT, 'Admin'),
             'password' => new external_value(PARAM_RAW, 'Password (optional)', VALUE_DEFAULT, ''),
-            'role_id' => new external_value(PARAM_INT, 'Tenant ID', VALUE_REQUIRED),
+            'role_id' => new external_value(PARAM_INT, 'Role ID', VALUE_REQUIRED),
         ]);
     }
 
