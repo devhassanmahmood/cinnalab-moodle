@@ -163,10 +163,11 @@ class local_customapi_external extends external_api {
             'firstname' => new external_value(PARAM_TEXT, 'First name', VALUE_DEFAULT, 'Tenant'),
             'lastname' => new external_value(PARAM_TEXT, 'Last name', VALUE_DEFAULT, 'Admin'),
             'password' => new external_value(PARAM_RAW, 'Password (optional)', VALUE_DEFAULT, ''),
+            'role_id' => new external_value(PARAM_INT, 'Tenant ID', VALUE_REQUIRED),
         ]);
     }
 
-    public static function create_user_in_tenant($email, $tenant, $firstname = 'Tenant', $lastname = 'Admin', $password = '') {
+    public static function create_user_in_tenant($email, $tenant, $firstname = 'Tenant', $lastname = 'Admin', $password = '', $role_id = 5) {
         global $DB, $CFG;
 
         $params = self::validate_parameters(self::create_user_in_tenant_parameters(), compact('email', 'tenant', 'firstname', 'lastname', 'password'));
@@ -176,7 +177,10 @@ class local_customapi_external extends external_api {
         if (!$vendor_role) {
             throw new moodle_exception('rolenotfound', 'local_customapi', '', 'vendor');
         }
-        $role_id = $vendor_role->id;
+        if(!isset($role_id) || $role_id == null){
+            $role_id = $vendor_role->id;    
+        }
+        
 
         require_once($CFG->dirroot . '/user/lib.php');
         require_once($CFG->dirroot . '/lib/accesslib.php');
