@@ -75,6 +75,15 @@ $functions = [
         'ajax'        => true,
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE], // makes it available to mobile WS too
     ],
+    'local_customapi_update_user_info' => [
+        'classname'   => 'local_customapi_external',
+        'methodname'  => 'update_user_info',
+        'classpath'   => 'local/customapi/externallib.php',
+        'description' => 'Update user information fields (email, firstname, lastname, phone, etc.)',
+        'type'        => 'write',
+        'capabilities'=> 'moodle/user:update',
+        'ajax'        => true,
+    ],
 ];
 
 $services = [

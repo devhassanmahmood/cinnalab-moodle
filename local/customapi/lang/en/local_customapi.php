@@ -40,3 +40,6 @@ $string['usernotfound'] = 'The specified user was not found.';
 $string['usernotintenant'] = 'The user is not allocated to the specified tenant.';
 $string['invalidtoken'] = 'Invalid Token';
 $string['nouserid'] = 'No user found by matching with user id from LMS';
+$string['emailexists'] = 'Email address {$a} is already in use by another user.';
+$string['idnumberexists'] = 'ID number {$a} is already in use by another user.';
+$string['noupdatefields'] = 'No fields were provided to update.';

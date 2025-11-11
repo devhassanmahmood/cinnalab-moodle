@@ -823,6 +823,164 @@ class local_customapi_external extends external_api {
             ]);
         }
 
+    /* -------------------- 9. Update User Information -------------------- */
+
+    public static function update_user_info_parameters() {
+        return new external_function_parameters([
+            'user_id' => new external_value(PARAM_INT, 'User ID', VALUE_REQUIRED),
+            'firstname' => new external_value(PARAM_TEXT, 'First name', VALUE_OPTIONAL),
+            'lastname' => new external_value(PARAM_TEXT, 'Last name', VALUE_OPTIONAL),
+            'email' => new external_value(PARAM_EMAIL, 'Email address', VALUE_OPTIONAL),
+            'idnumber' => new external_value(PARAM_RAW, 'ID number', VALUE_OPTIONAL),
+            'phone1' => new external_value(PARAM_TEXT, 'Phone 1', VALUE_OPTIONAL),
+            'phone2' => new external_value(PARAM_TEXT, 'Phone 2', VALUE_OPTIONAL),
+            'institution' => new external_value(PARAM_TEXT, 'Institution', VALUE_OPTIONAL),
+            'department' => new external_value(PARAM_TEXT, 'Department', VALUE_OPTIONAL),
+            'address' => new external_value(PARAM_TEXT, 'Address', VALUE_OPTIONAL),
+            'city' => new external_value(PARAM_TEXT, 'City', VALUE_OPTIONAL),
+            'country' => new external_value(PARAM_ALPHA, 'Country code', VALUE_OPTIONAL),
+            'description' => new external_value(PARAM_RAW, 'User description', VALUE_OPTIONAL),
+        ]);
+    }
+
+    public static function update_user_info($user_id, $firstname = null, $lastname = null, $email = null, 
+                                           $idnumber = null, $phone1 = null, $phone2 = null, 
+                                           $institution = null, $department = null, $address = null, 
+                                           $city = null, $country = null, $description = null) {
+        global $DB, $CFG;
+
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        // Validate parameters
+        $params = self::validate_parameters(self::update_user_info_parameters(), [
+            'user_id' => $user_id,
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'email' => $email,
+            'idnumber' => $idnumber,
+            'phone1' => $phone1,
+            'phone2' => $phone2,
+            'institution' => $institution,
+            'department' => $department,
+            'address' => $address,
+            'city' => $city,
+            'country' => $country,
+            'description' => $description,
+        ]);
+
+        // Validate context
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        // Check capability
+        require_capability('moodle/user:update', $context);
+
+        // Validate user exists and is not deleted
+        $user = $DB->get_record('user', ['id' => $user_id, 'deleted' => 0]);
+        if (!$user) {
+            throw new moodle_exception('usernotfound', 'local_customapi');
+        }
+
+        // Prepare update data - only include fields that were provided
+        $updatedata = new stdClass();
+        $updatedata->id = $user_id;
+        $updatedata->timemodified = time();
+
+        $updated_fields = [];
+
+        if ($firstname !== null) {
+            $updatedata->firstname = $firstname;
+            $updated_fields[] = 'firstname';
+        }
+        if ($lastname !== null) {
+            $updatedata->lastname = $lastname;
+            $updated_fields[] = 'lastname';
+        }
+        if ($email !== null) {
+            // Check if email is already in use by another user
+            $existing = $DB->get_record('user', ['email' => $email, 'deleted' => 0]);
+            if ($existing && $existing->id != $user_id) {
+                throw new moodle_exception('emailexists', 'local_customapi', '', $email);
+            }
+            $updatedata->email = $email;
+            $updated_fields[] = 'email';
+        }
+        if ($idnumber !== null) {
+            // Check if idnumber is already in use by another user
+            if (!empty($idnumber)) {
+                $existing = $DB->get_record('user', ['idnumber' => $idnumber, 'deleted' => 0]);
+                if ($existing && $existing->id != $user_id) {
+                    throw new moodle_exception('idnumberexists', 'local_customapi', '', $idnumber);
+                }
+            }
+            $updatedata->idnumber = $idnumber;
+            $updated_fields[] = 'idnumber';
+        }
+        if ($phone1 !== null) {
+            $updatedata->phone1 = $phone1;
+            $updated_fields[] = 'phone1';
+        }
+        if ($phone2 !== null) {
+            $updatedata->phone2 = $phone2;
+            $updated_fields[] = 'phone2';
+        }
+        if ($institution !== null) {
+            $updatedata->institution = $institution;
+            $updated_fields[] = 'institution';
+        }
+        if ($department !== null) {
+            $updatedata->department = $department;
+            $updated_fields[] = 'department';
+        }
+        if ($address !== null) {
+            $updatedata->address = $address;
+            $updated_fields[] = 'address';
+        }
+        if ($city !== null) {
+            $updatedata->city = $city;
+            $updated_fields[] = 'city';
+        }
+        if ($country !== null) {
+            $updatedata->country = $country;
+            $updated_fields[] = 'country';
+        }
+        if ($description !== null) {
+            $updatedata->description = $description;
+            $updatedata->descriptionformat = FORMAT_HTML;
+            $updated_fields[] = 'description';
+        }
+
+        // Check if there are any fields to update
+        if (empty($updated_fields)) {
+            throw new moodle_exception('noupdatefields', 'local_customapi');
+        }
+
+        // Update user using Moodle's user_update_user function
+        user_update_user($updatedata, false, true);
+
+        // Trigger user_updated event
+        \core\event\user_updated::create_from_userid($user_id)->trigger();
+
+        return [
+            'success' => true,
+            'user_id' => (int)$user_id,
+            'updated_fields' => $updated_fields,
+            'message' => 'User information updated successfully',
+        ];
+    }
+
+    public static function update_user_info_returns() {
+        return new external_single_structure([
+            'success' => new external_value(PARAM_BOOL, 'Operation success'),
+            'user_id' => new external_value(PARAM_INT, 'Updated user ID'),
+            'updated_fields' => new external_multiple_structure(
+                new external_value(PARAM_TEXT, 'Field name'),
+                'List of fields that were updated'
+            ),
+            'message' => new external_value(PARAM_TEXT, 'Success message'),
+        ]);
+    }
+
 }
 
 /**
