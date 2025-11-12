@@ -868,6 +868,21 @@ class local_customapi_external extends external_api {
             'description' => $description,
         ]);
 
+        // Use the validated parameter values to avoid positional mismatches from optional params.
+        $user_id = $params['user_id'];
+        $firstname = $params['firstname'] ?? null;
+        $lastname = $params['lastname'] ?? null;
+        $email = $params['email'] ?? null;
+        $idnumber = $params['idnumber'] ?? null;
+        $phone1 = $params['phone1'] ?? null;
+        $phone2 = $params['phone2'] ?? null;
+        $institution = $params['institution'] ?? null;
+        $department = $params['department'] ?? null;
+        $address = $params['address'] ?? null;
+        $city = $params['city'] ?? null;
+        $country = $params['country'] ?? null;
+        $description = $params['description'] ?? null;
+
         // Validate context
         $context = context_system::instance();
         self::validate_context($context);
