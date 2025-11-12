@@ -3,6 +3,150 @@
 ## Overview
 This document describes the new `local_customapi_update_user_info` endpoint that allows you to update user information in Moodle.
 
+---
+
+## 🚀 Quick API Reference
+
+### Update User Information
+**Endpoint:** `/api/user/update`
+
+**Parameters:**
+- `user_id` (User ID) - **Required**
+- `firstname` (First Name) - Optional
+- `lastname` (Last Name) - Optional
+- `email` (Email Address) - Optional
+- `idnumber` (ID Number) - Optional
+- `phone1` (Phone Number 1) - Optional
+- `phone2` (Phone Number 2) - Optional
+- `institution` (Institution) - Optional
+- `department` (Department) - Optional
+- `address` (Address) - Optional
+- `city` (City) - Optional
+- `country` (Country Code - 2 letters) - Optional
+- `description` (User Description) - Optional
+
+### Moodle API END Point:
+
+**API URL:** `https://cinnalab-moodle-d1962611ca61.herokuapp.com/webservice/rest/server.php`
+
+**Method:** `POST`
+
+### Request (POST form data):
+
+**Example 1: Update Email and Name**
+```
+wstoken=f14f5c28b529c65551bd07f17c5bc552
+wsfunction=local_customapi_update_user_info
+moodlewsrestformat=json
+user_id=123
+email=john.doe@example.com
+firstname=John
+lastname=Doe
+```
+
+**Example 2: Update Phone and Department**
+```
+wstoken=f14f5c28b529c65551bd07f17c5bc552
+wsfunction=local_customapi_update_user_info
+moodlewsrestformat=json
+user_id=123
+phone1=+1-555-0100
+department=Engineering
+```
+
+**Example 3: Update All Fields**
+```
+wstoken=f14f5c28b529c65551bd07f17c5bc552
+wsfunction=local_customapi_update_user_info
+moodlewsrestformat=json
+user_id=123
+firstname=Jane
+lastname=Smith
+email=jane.smith@example.com
+idnumber=EMP12345
+phone1=+1-555-0100
+phone2=+1-555-0200
+institution=Tech Corp
+department=IT Department
+address=123 Main Street
+city=San Francisco
+country=US
+description=Senior Developer
+```
+
+### Response:
+
+**Success:**
+```json
+{
+  "success": true,
+  "user_id": 123,
+  "updated_fields": [
+    "firstname",
+    "lastname",
+    "email"
+  ],
+  "message": "User information updated successfully"
+}
+```
+
+**Error - User Not Found:**
+```json
+{
+  "exception": "moodle_exception",
+  "errorcode": "usernotfound",
+  "message": "The specified user was not found."
+}
+```
+
+**Error - Email Already Exists:**
+```json
+{
+  "exception": "moodle_exception",
+  "errorcode": "emailexists",
+  "message": "Email address john.doe@example.com is already in use by another user."
+}
+```
+
+**Error - ID Number Already Exists:**
+```json
+{
+  "exception": "moodle_exception",
+  "errorcode": "idnumberexists",
+  "message": "ID number EMP12345 is already in use by another user."
+}
+```
+
+**Error - No Fields Provided:**
+```json
+{
+  "exception": "moodle_exception",
+  "errorcode": "noupdatefields",
+  "message": "No fields were provided to update."
+}
+```
+
+### cURL Example:
+```bash
+curl -X POST "https://cinnalab-moodle-d1962611ca61.herokuapp.com/webservice/rest/server.php" \
+  -d "wstoken=f14f5c28b529c65551bd07f17c5bc552" \
+  -d "wsfunction=local_customapi_update_user_info" \
+  -d "moodlewsrestformat=json" \
+  -d "user_id=123" \
+  -d "email=newemail@example.com" \
+  -d "firstname=John" \
+  -d "lastname=Doe"
+```
+
+### Important Notes:
+- **Only send fields you want to update** - all fields except `user_id` are optional
+- Email must be unique across the site
+- ID number must be unique if provided
+- Country must be a 2-letter ISO code (e.g., US, GB, CA)
+- Requires `moodle/user:update` capability
+
+---
+
 ## Endpoint Details
 
 **Function Name:** `local_customapi_update_user_info`  
