@@ -15,22 +15,26 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tenant restrictions plugin version.
+ * Version information for local_tenant_restrictions.
  *
- * @package     local_tenant_restrictions
- * @copyright   2025 CinnaLab
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * This plugin implements strict tenant-based course category visibility
+ * and selection rules for Vendor Admin and Partner Manager roles.
+ *
+ * @package    local_tenant_restrictions
+ * @copyright  2025 Your Organization
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-/** @var stdClass $plugin */
 $plugin->component = 'local_tenant_restrictions';
-$plugin->version = 2025010724;
-$plugin->requires = 2024042200; // Moodle 4.4+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.0';
+$plugin->version   = 2025010725;  // Upgraded from 2025010724
+$plugin->requires  = 2024042200;  // Moodle 4.4+
+$plugin->maturity  = MATURITY_STABLE;
+$plugin->release   = '1.0.0';
 
+// Dependency on mutenancy plugin.
 $plugin->dependencies = [
-    'tool_mutenancy' => 2025080950,
+    'tool_mutenancy' => ANY_VERSION,
 ];
+

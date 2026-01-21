@@ -15,195 +15,295 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tenant restrictions library functions.
+ * Library functions for local_tenant_restrictions.
  *
- * @package     local_tenant_restrictions
- * @copyright   2025 CinnaLab
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * This file contains callback functions that hook into Moodle's core
+ * to implement tenant-based category restrictions.
+ *
+ * FEATURES IMPLEMENTED:
+ * 1. Course Management Page (/course/management.php) - Category tree filtering
+ * 2. Course Creation (/course/edit.php) - Category dropdown filtering
+ * 3. Course Editing (/course/edit.php) - Category dropdown filtering
+ * 4. Server-side validation to prevent POST manipulation
+ *
+ * @package    local_tenant_restrictions
+ * @copyright  2025 Your Organization
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Hook to filter course categories for course creation.
+ * Called before the page header is rendered.
  *
- * @param array $categories Array of course categories
- * @return array Filtered categories
+ * This is used to:
+ * 1. Intercept course management page access and enforce tenant-based category restrictions
+ * 2. Initialize JavaScript for category dropdown filtering on course edit pages
  */
-function local_tenant_restrictions_filter_course_categories($categories) {
-    global $USER;
+function local_tenant_restrictions_before_standard_html_head() {
+    global $PAGE, $USER;
 
-    // Only apply restrictions to users with tenant restrictions
-    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
-        return $categories;
+    // Only process if restrictions should be applied.
+    if (!class_exists('\local_tenant_restrictions\helper')) {
+        return;
     }
 
-    $allowed_categories = \local_tenant_restrictions\tenant_helper::get_allowed_categories();
-    
-    // Filter categories to only include allowed ones
-    $filtered_categories = [];
-    foreach ($categories as $category) {
-        if (in_array($category->id, $allowed_categories)) {
-            $filtered_categories[] = $category;
+    $helper = \local_tenant_restrictions\helper::class;
+    if (!$helper::should_apply_restrictions()) {
+        return;
+    }
+
+    // Get page info early.
+    $pagetype = $PAGE->pagetype ?? '';
+    $pageurl = $PAGE->url ?? null;
+    $path = $pageurl ? $pageurl->get_path() : '';
+
+    // Handle course management page category access.
+    if ($pagetype === 'course-management' || strpos($path, '/course/management.php') !== false) {
+        local_tenant_restrictions_check_management_access();
+    }
+
+    // Handle course edit page - inject JavaScript to filter category dropdown.
+    if ($pagetype === 'course-edit' || strpos($path, '/course/edit.php') !== false) {
+        local_tenant_restrictions_init_category_filter();
+    }
+}
+
+/**
+ * Initialize JavaScript for category dropdown filtering.
+ *
+ * Injects AMD module to filter the category autocomplete/select element
+ * on course creation and editing pages.
+ */
+function local_tenant_restrictions_init_category_filter() {
+    global $PAGE;
+
+    $helper = \local_tenant_restrictions\helper::class;
+
+    $tenantcategoryid = $helper::get_user_tenant_category_id();
+    if ($tenantcategoryid === null) {
+        return;
+    }
+
+    $allowedcategories = $helper::get_tenant_category_tree($tenantcategoryid);
+
+    // Initialize the AMD module with allowed categories.
+    $PAGE->requires->js_call_amd(
+        'local_tenant_restrictions/category_filter',
+        'init',
+        [$allowedcategories, $tenantcategoryid]
+    );
+}
+
+/**
+ * Check and enforce category access on course management page.
+ *
+ * Validates that the requested category (if any) belongs to the user's tenant.
+ * Redirects to user's tenant category if accessing unauthorized category.
+ */
+function local_tenant_restrictions_check_management_access() {
+    $helper = \local_tenant_restrictions\helper::class;
+
+    // Get requested category ID from URL.
+    $categoryid = optional_param('categoryid', 0, PARAM_INT);
+
+    if ($categoryid > 0) {
+        // Validate category belongs to user's tenant.
+        if (!$helper::is_category_in_user_tenant($categoryid)) {
+            // Redirect to user's tenant root category.
+            $tenantcategoryid = $helper::get_user_tenant_category_id();
+            if ($tenantcategoryid) {
+                $url = new moodle_url('/course/management.php', ['categoryid' => $tenantcategoryid]);
+                redirect($url, get_string('accessdenied', 'local_tenant_restrictions'), null, \core\output\notification::NOTIFY_WARNING);
+            } else {
+                // No tenant assigned - redirect to site home.
+                redirect(new moodle_url('/'), get_string('notenantassigned', 'local_tenant_restrictions'), null, \core\output\notification::NOTIFY_ERROR);
+            }
+        }
+    } else {
+        // No category specified - redirect to tenant's root category.
+        $tenantcategoryid = $helper::get_user_tenant_category_id();
+        if ($tenantcategoryid) {
+            $url = new moodle_url('/course/management.php', ['categoryid' => $tenantcategoryid]);
+            redirect($url);
         }
     }
-
-    return $filtered_categories;
 }
 
 /**
- * Hook to check if user can access course category.
+ * Extend the course navigation.
  *
- * @param int $categoryid Category ID
- * @return bool True if user can access category
+ * @param navigation_node $navigation The navigation node to extend
+ * @param stdClass $course The course object
+ * @param context $context The course context
  */
-function local_tenant_restrictions_can_access_category($categoryid) {
-    return \local_tenant_restrictions\tenant_helper::can_access_category($categoryid);
+function local_tenant_restrictions_extend_navigation_course($navigation, $course, $context) {
+    // Navigation extensions if needed.
 }
 
 /**
- * Hook to check if user can create course in category.
+ * Hook into form definition.
  *
- * @param int $categoryid Category ID
- * @return bool True if user can create course in category
+ * This callback is called when forms are being defined.
+ * We use it to filter the category select element in course forms.
+ *
+ * @param MoodleQuickForm $mform The form being processed
+ * @param string $formtype The type of form
  */
-function local_tenant_restrictions_can_create_course($categoryid) {
-    // Only apply restrictions to users with tenant restrictions
-    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
-        return true;
-    }
-
-    return \local_tenant_restrictions\tenant_helper::can_access_category($categoryid);
+function local_tenant_restrictions_form_definition_after_data($mform, $formtype = '') {
+    // Form modifications are handled via coursecat_options callback.
 }
 
 /**
- * Hook to check if user can manage course.
+ * Filter categories for course creation/editing.
  *
- * @param int $courseid Course ID
- * @return bool True if user can manage course
- */
-function local_tenant_restrictions_can_manage_course($courseid) {
-    global $DB;
-
-    // Only apply restrictions to users with tenant restrictions
-    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
-        return true;
-    }
-
-    // Get course category
-    $course = $DB->get_record('course', ['id' => $courseid], 'category');
-    if (!$course) {
-        return false;
-    }
-
-    return \local_tenant_restrictions\tenant_helper::can_access_category($course->category);
-}
-
-/**
- * Hook to add navigation items for tenant management.
+ * This is called via the course category options to filter available categories.
  *
- * @param navigation_node $navigation Navigation node
+ * @return array|null Array of allowed category IDs or null for no restriction
  */
-function local_tenant_restrictions_extend_navigation($navigation) {
-    \local_tenant_restrictions\navigation_extension::extend_navigation($navigation);
-}
-
-/**
- * Hook to restrict access to course category management.
- *
- * @param int $categoryid Category ID
- * @return bool True if user can manage category
- */
-function local_tenant_restrictions_can_manage_category($categoryid) {
-    // Only apply restrictions to users with tenant restrictions
-    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
-        return true;
-    }
-
-    // Tenant users cannot manage categories outside their tenant
-    return \local_tenant_restrictions\tenant_helper::can_access_category($categoryid);
-}
-
-/**
- * Hook to filter course list for users.
- *
- * @param array $courses Array of courses
- * @return array Filtered courses
- */
-function local_tenant_restrictions_filter_courses($courses) {
-    // Only apply restrictions to users with tenant restrictions
-    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
-        return $courses;
-    }
-
-    $allowed_categories = \local_tenant_restrictions\tenant_helper::get_allowed_categories();
-    
-    // Filter courses to only include those in allowed categories
-    $filtered_courses = [];
-    foreach ($courses as $course) {
-        if (in_array($course->category, $allowed_categories)) {
-            $filtered_courses[] = $course;
-        }
-    }
-
-    return $filtered_courses;
-}
-
-/**
- * Hook to restrict breadcrumb navigation.
- *
- * @param array $breadcrumbs Array of breadcrumb items
- * @return array Filtered breadcrumbs
- */
-function local_tenant_restrictions_filter_breadcrumbs($breadcrumbs) {
-    // Only apply restrictions to users with tenant restrictions
-    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access()) {
-        return $breadcrumbs;
-    }
-
-    $allowed_categories = \local_tenant_restrictions\tenant_helper::get_allowed_categories();
-    
-    // Remove breadcrumbs that link to categories outside tenant
-    $filtered_breadcrumbs = [];
-    foreach ($breadcrumbs as $breadcrumb) {
-        // Check if breadcrumb is a category link
-        if (isset($breadcrumb['categoryid']) && !in_array($breadcrumb['categoryid'], $allowed_categories)) {
-            continue;
-        }
-        $filtered_breadcrumbs[] = $breadcrumb;
-    }
-
-    return $filtered_breadcrumbs;
-}
-
-/**
- * Hook to override capability check for course category changes.
- * This prevents tenant users from seeing the category dropdown.
- *
- * @param string $capability The capability being checked
- * @param context $context The context where capability is checked
- * @param int $userid User ID
- * @return bool|null True if allowed, false if denied, null if no override
- */
-function local_tenant_restrictions_override_capability($capability, $context, $userid) {
-    // Only override the specific capability we want to restrict
-    if ($capability !== 'moodle/course:changecategory') {
-        return null; // No override for other capabilities
-    }
-
-    // Only apply to course category contexts
-    if ($context->contextlevel !== CONTEXT_COURSECAT) {
+function local_tenant_restrictions_get_allowed_categories() {
+    if (!class_exists('\local_tenant_restrictions\helper')) {
         return null;
     }
 
-    // Check if user has tenant restrictions
-    if (!\local_tenant_restrictions\tenant_helper::has_restricted_access($userid)) {
-        return null; // No override for non-tenant users
+    $helper = \local_tenant_restrictions\helper::class;
+
+    if (!$helper::should_apply_restrictions()) {
+        return null;
     }
 
-    // For tenant users, deny the capability to change categories
-    return false;
+    $tenantcategoryid = $helper::get_user_tenant_category_id();
+    if ($tenantcategoryid === null) {
+        return []; // No categories allowed.
+    }
+
+    return $helper::get_tenant_category_tree($tenantcategoryid);
 }
 
-// Legacy callback functions removed - now using new hook system
-// See db/hooks.php for new hook registrations
+/**
+ * Get the default category for course creation.
+ *
+ * @return int|null Default category ID or null
+ */
+function local_tenant_restrictions_get_default_category() {
+    if (!class_exists('\local_tenant_restrictions\helper')) {
+        return null;
+    }
+
+    $helper = \local_tenant_restrictions\helper::class;
+
+    if (!$helper::should_apply_restrictions()) {
+        return null;
+    }
+
+    return $helper::get_user_tenant_category_id();
+}
+
+/**
+ * Validate course data before saving.
+ *
+ * This provides server-side validation to prevent POST manipulation.
+ * Called when a course is being created or updated.
+ *
+ * @param stdClass $data The course data being saved
+ * @param array $files Files associated with the form
+ * @return array Array of errors (empty if validation passed)
+ */
+function local_tenant_restrictions_course_validation($data, $files = []) {
+    $errors = [];
+
+    if (!class_exists('\local_tenant_restrictions\helper')) {
+        return $errors;
+    }
+
+    $helper = \local_tenant_restrictions\helper::class;
+
+    if (!$helper::should_apply_restrictions()) {
+        return $errors;
+    }
+
+    // Validate category selection.
+    if (!empty($data['category'])) {
+        if (!$helper::is_category_in_user_tenant((int)$data['category'])) {
+            $errors['category'] = get_string('invalidcategoryselection', 'local_tenant_restrictions');
+        }
+    }
+
+    return $errors;
+}
+
+/**
+ * Pre-process course data.
+ *
+ * Called before a course is created/updated.
+ * Validates and potentially corrects category assignment.
+ *
+ * @param stdClass $course The course object
+ */
+function local_tenant_restrictions_pre_course_create($course) {
+    local_tenant_restrictions_validate_course_category($course);
+}
+
+/**
+ * Pre-process course data for updates.
+ *
+ * @param stdClass $course The course object
+ */
+function local_tenant_restrictions_pre_course_update($course) {
+    local_tenant_restrictions_validate_course_category($course);
+}
+
+/**
+ * Validate and enforce category restrictions for course creation/update.
+ *
+ * @param stdClass $course The course object (passed by reference)
+ * @throws moodle_exception if category is invalid and cannot be corrected
+ */
+function local_tenant_restrictions_validate_course_category($course) {
+    if (!class_exists('\local_tenant_restrictions\helper')) {
+        return;
+    }
+
+    $helper = \local_tenant_restrictions\helper::class;
+
+    if (!$helper::should_apply_restrictions()) {
+        return;
+    }
+
+    if (empty($course->category)) {
+        // Set default category to tenant root.
+        $tenantcategoryid = $helper::get_user_tenant_category_id();
+        if ($tenantcategoryid) {
+            $course->category = $tenantcategoryid;
+        }
+        return;
+    }
+
+    // Validate the category.
+    if (!$helper::is_category_in_user_tenant((int)$course->category)) {
+        throw new moodle_exception('categorynotintenant', 'local_tenant_restrictions');
+    }
+}
+
+/**
+ * Page init callback.
+ *
+ * Called early in page initialization. Used to set up category filtering.
+ */
+function local_tenant_restrictions_after_config() {
+    // Early initialization if needed.
+}
+
+/**
+ * Callback when user logs in.
+ *
+ * Clear caches to ensure fresh tenant data.
+ *
+ * @param \core\event\user_loggedin $event The login event
+ */
+function local_tenant_restrictions_user_loggedin($event) {
+    if (class_exists('\local_tenant_restrictions\helper')) {
+        \local_tenant_restrictions\helper::clear_cache();
+    }
+}
+

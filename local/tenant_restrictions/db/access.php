@@ -15,50 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tenant restrictions capabilities.
+ * Capability definitions for local_tenant_restrictions.
  *
- * @package     local_tenant_restrictions
- * @copyright   2025 CinnaLab
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    local_tenant_restrictions
+ * @copyright  2025 Your Organization
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
-    // Manage tenant - Vendor Admin capability.
-    'local/tenant_restrictions:managetenant' => [
-        'captype' => 'write',
-        'riskbitmask' => RISK_PERSONAL | RISK_DATALOSS,
-        'contextlevel' => CONTEXT_TENANT,
-        'archetypes' => [
-            'manager' => CAP_ALLOW,
-        ],
-    ],
-    // Create courses in tenant category - Partner Manager capability.
-    'local/tenant_restrictions:createcourse' => [
-        'captype' => 'write',
-        'riskbitmask' => RISK_DATALOSS,
-        'contextlevel' => CONTEXT_TENANT,
-        'archetypes' => [
-            'manager' => CAP_ALLOW,
-        ],
-    ],
-    // Manage courses in tenant category - Partner Manager capability.
-    'local/tenant_restrictions:managecourse' => [
-        'captype' => 'write',
-        'riskbitmask' => RISK_DATALOSS,
-        'contextlevel' => CONTEXT_TENANT,
-        'archetypes' => [
-            'manager' => CAP_ALLOW,
-        ],
-    ],
-    // Access tenant category only - Vendor Admin and Partner Manager capability.
-    'local/tenant_restrictions:accesstenantcategory' => [
+    // Capability to bypass tenant restrictions (for site admins).
+    'local/tenant_restrictions:bypassrestrictions' => [
         'captype' => 'read',
-        'riskbitmask' => RISK_PERSONAL,
-        'contextlevel' => CONTEXT_TENANT,
+        'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
-            'manager' => CAP_ALLOW,
+            // Only site admins should have this by default.
         ],
+        'riskbitmask' => RISK_CONFIG,
     ],
 ];
+

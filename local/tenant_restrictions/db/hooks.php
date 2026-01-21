@@ -14,15 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Hook callbacks registration for local_tenant_restrictions.
+ *
+ * @package    local_tenant_restrictions
+ * @copyright  2025 Your Organization
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 defined('MOODLE_INTERNAL') || die();
 
 $callbacks = [
+    // Hook into page rendering to enforce category restrictions.
     [
         'hook' => \core\hook\output\before_http_headers::class,
-        'callback' => [\local_tenant_restrictions\hook\before_http_headers_hook::class, 'handle'],
-    ],
-    [
-        'hook' => \core\hook\output\before_footer_html_generation::class,
-        'callback' => [\local_tenant_restrictions\hook\before_footer_hook::class, 'handle'],
+        'callback' => [\local_tenant_restrictions\hook_callbacks::class, 'before_http_headers'],
+        'priority' => 500, // Higher priority to run before other callbacks.
     ],
 ];
+
