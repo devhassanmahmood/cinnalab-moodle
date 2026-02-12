@@ -32,7 +32,23 @@ $CFG->admin     = 'admin';
 //$CFG->cachedir = '/app/moodledata/cache';
 
 $CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
-//$CFG->tool_objectfs_use_presigned_urls = false; // Force Moodle to serve via pluginfile.php
+
+// ObjectFS S3 settings (also configured in admin, but hardcoded here for Heroku reliability).
+$CFG->forced_plugin_settings['tool_objectfs'] = [
+    'filesystem'          => '\tool_objectfs\s3_file_system',
+    's3_key'              => getenv('AWS_ACCESS_KEY_ID') ?: 'AKIA4SYAMSOJYKHAO7G4',
+    's3_secret'           => getenv('AWS_SECRET_ACCESS_KEY') ?: '',
+    's3_bucket'           => getenv('AWS_S3_BUCKET') ?: 'moodle-cinnalab',
+    's3_region'           => getenv('AWS_REGION') ?: 'eu-north-1',
+    's3_bucket_acl'       => 'bucket-owner-read',
+    'maxtaskruntime'      => 86400,
+    'enabletasks'         => true,
+    'sizethreshold'       => 192000,
+    'minimumage'          => 0,       // Push to S3 immediately (critical for Heroku ephemeral FS)
+    'consistencydelay'    => 0,       // No delay (critical for Heroku ephemeral FS)
+    'enablepresignedurls' => true,
+    'expirationtime'      => 7200,    // 2 hours (was 0 which breaks file serving)
+];
 
 
 // Directory permissions
