@@ -21,18 +21,18 @@ $CFG->dboptions = array(
 
 // Site settings
 $CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'https://cinnalab-moodle-d1962611ca61.herokuapp.com';
-$CFG->dataroot = __DIR__ . '/moodledata';
+$CFG->dataroot = '/tmp/moodledata';
 $CFG->admin     = 'admin';
 
 // S3 File Storage Configuration using objectfs tool
 //$CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
-$CFG->filedir = '/app/moodledata/filedir';
-$CFG->localcachedir = '/app/moodledata/localcache';
-$CFG->tempdir = '/app/moodledata/temp';
-$CFG->cachedir = '/app/moodledata/cache';
+//$CFG->filedir = '/app/moodledata/filedir';
+//$CFG->localcachedir = '/app/moodledata/localcache';
+//$CFG->tempdir = '/app/moodledata/temp';
+//$CFG->cachedir = '/app/moodledata/cache';
 
 $CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
-$CFG->tool_objectfs_use_presigned_urls = false; // Force Moodle to serve via pluginfile.php
+//$CFG->tool_objectfs_use_presigned_urls = false; // Force Moodle to serve via pluginfile.php
 
 
 // Directory permissions
@@ -47,11 +47,11 @@ $CFG->directorypermissions = 02777;
 
 // Cache settings
 $CFG->cachejs = 1;
-$CFG->cachetype = 'file';
+//$CFG->cachetype = 'file';
 
 // Session settings
-$CFG->session_handler_class = '\core\session\file';
-$CFG->session_file_save_path = $CFG->dataroot . '/sessions';
+//$CFG->session_handler_class = '\core\session\file';
+//$CFG->session_file_save_path = $CFG->dataroot . '/sessions';
 
 // Allow iframe embedding
 $CFG->allowframembedding = true;
@@ -61,9 +61,9 @@ $CFG->upgradekey = '';
 
 // $CFG->noemailever = true;
 
-if (!file_exists($CFG->session_file_save_path)) {
-    mkdir($CFG->session_file_save_path, 0777, true);
-}
+//if (!file_exists($CFG->session_file_save_path)) {
+  //  mkdir($CFG->session_file_save_path, 0777, true);
+//}
 
 $CFG->sslproxy = true;
 
