@@ -24,8 +24,7 @@ namespace tool_objectfs\local;
  * @copyright Catalyst IT
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tasks_test extends \tool_objectfs\tests\testcase {
-
+final class tasks_test extends \tool_objectfs\tests\testcase {
     protected function setUp(): void {
         parent::setUp();
         ob_start();
@@ -33,13 +32,14 @@ class tasks_test extends \tool_objectfs\tests\testcase {
 
     protected function tearDown(): void {
         ob_end_clean();
+        parent::tearDown();
     }
 
-    public function test_run_scheduled_tasks() {
+    public function test_run_scheduled_tasks(): void {
         global $CFG;
         // If tasks not implemented.
         if ($CFG->branch <= 26) {
-            return true;
+            return;
         }
 
         $config = manager::get_objectfs_config();
@@ -64,5 +64,4 @@ class tasks_test extends \tool_objectfs\tests\testcase {
         }
         $this->expectNotToPerformAssertions(); // Just check we get this far without any exceptions.
     }
-
 }

@@ -39,7 +39,6 @@ require_once($CFG->dirroot . '/admin/tool/objectfs/lib.php');
  * manipulator
  */
 abstract class manipulator implements object_manipulator {
-
     /**
      * object file system
      *
@@ -109,13 +108,16 @@ abstract class manipulator implements object_manipulator {
                 continue;
             }
 
-            $newlocation = $this->manipulate_object($objectrecord);
-            if (!empty($objectrecord->id)) {
-                manager::upsert_object($objectrecord, $newlocation);
-            } else {
-                manager::update_object_by_hash($objectrecord->contenthash, $newlocation);
+            try {
+                $newlocation = $this->manipulate_object($objectrecord);
+                if (!empty($objectrecord->id)) {
+                    manager::upsert_object($objectrecord, $newlocation);
+                } else {
+                    manager::update_object_by_hash($objectrecord->contenthash, $newlocation);
+                }
+            } finally {
+                $objectlock->release();
             }
-            $objectlock->release();
         }
 
         $this->logger->end_timing();
