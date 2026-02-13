@@ -62,8 +62,8 @@ $CFG->cachejs = 1;
 //$CFG->cachetype = 'file';
 
 // Session settings
-//$CFG->session_handler_class = '\core\session\file';
-//$CFG->session_file_save_path = $CFG->dataroot . '/sessions';
+$CFG->session_handler_class = '\core\session\file';
+$CFG->session_file_save_path = $CFG->dataroot . '/sessions';
 
 // Allow iframe embedding
 $CFG->allowframembedding = true;
