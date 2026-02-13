@@ -33,22 +33,15 @@ $CFG->admin     = 'admin';
 
 $CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';
 
-// ObjectFS S3 settings (also configured in admin, but hardcoded here for Heroku reliability).
-$CFG->forced_plugin_settings['tool_objectfs'] = [
-    'filesystem'          => '\tool_objectfs\s3_file_system',
-    's3_key'              => getenv('AWS_ACCESS_KEY_ID') ?: 'AKIA4SYAMSOJYKHAO7G4',
-    's3_secret'           => getenv('AWS_SECRET_ACCESS_KEY') ?: '',
-    's3_bucket'           => getenv('AWS_S3_BUCKET') ?: 'moodle-cinnalab',
-    's3_region'           => getenv('AWS_REGION') ?: 'eu-north-1',
-    's3_bucket_acl'       => 'bucket-owner-read',
-    'maxtaskruntime'      => 86400,
-    'enabletasks'         => true,
-    'sizethreshold'       => 192000,
-    'minimumage'          => 0,       // Push to S3 immediately (critical for Heroku ephemeral FS)
-    'consistencydelay'    => 0,       // No delay (critical for Heroku ephemeral FS)
-    'enablepresignedurls' => true,
-    'expirationtime'      => 7200,    // 2 hours (was 0 which breaks file serving)
-];
+// ObjectFS settings are managed via admin interface or CLI.
+// Configure via: Site administration → Plugins → Object storage file system
+// Or use: php admin/cli/cfg.php --component=tool_objectfs --name=<setting> --set=<value>
+// 
+// Recommended settings for Heroku:
+// - Enable "Use the default credential provider chain" (uses AWS_ACCESS_KEY_ID env vars)
+// - Set minimumage = 0 (upload immediately)
+// - Set consistencydelay = 0 (no delay)
+// - Set sizethreshold = 0 (upload all files)
 
 
 // Directory permissions
@@ -60,7 +53,10 @@ $CFG->directorypermissions = 02777;
 // $CFG->debugstring = '';
 // $CFG->debugemail = '';
 // $CFG->debugpageinfo = getenv('MOODLE_DEBUG_PAGEINFO') ? 1 : 0;
-
+// @error_reporting(E_ALL | E_STRICT);
+// @ini_set('display_errors', '1');
+// $CFG->debug = (E_ALL | E_STRICT);
+// $CFG->debugdisplay = 1;
 // Cache settings
 $CFG->cachejs = 1;
 //$CFG->cachetype = 'file';
