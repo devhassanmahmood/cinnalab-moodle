@@ -56,8 +56,8 @@ $CFG->directorypermissions = 02777;
 // @error_reporting(E_ALL | E_STRICT);
 @ini_set('display_errors', '0');
 @ini_set('log_errors', '1');
-// $CFG->debug = (E_ALL | E_STRICT);
-// $CFG->debugdisplay = 1;
+ $CFG->debug = (E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+ $CFG->debugdisplay = 0;
 // Cache settings
 $CFG->cachejs = 1;
 //$CFG->cachetype = 'file';
