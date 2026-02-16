@@ -226,7 +226,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['testfile'])) {
             // Try to generate pre-signed URL
             output("=== Test 3: Pre-signed URL Generation ===", 'info');
             try {
-                $presigned_url = $external_client->generate_presigned_url($contenthash);
+                $presigned_url_obj = $external_client->generate_presigned_url($contenthash);
+                
+                // Extract URL from signed_url object (it has a ->url property which is a moodle_url)
+                if (is_object($presigned_url_obj) && property_exists($presigned_url_obj, 'url')) {
+                    $moodle_url = $presigned_url_obj->url;
+                    if (is_object($moodle_url) && method_exists($moodle_url, 'out')) {
+                        // It's a moodle_url object - get the string URL
+                        $presigned_url = $moodle_url->out(false);
+                    } else {
+                        $presigned_url = (string)$moodle_url;
+                    }
+                    $expires_at = property_exists($presigned_url_obj, 'expiresat') ? $presigned_url_obj->expiresat : null;
+                    if ($expires_at) {
+                        $expires_date = date('Y-m-d H:i:s', $expires_at);
+                        output("URL expires at: {$expires_date}", 'info');
+                    }
+                } else {
+                    $presigned_url = (string)$presigned_url_obj;
+                }
+                
                 output("Pre-signed URL generated:", 'success');
                 if ($is_cli) {
                     output($presigned_url, 'info');
