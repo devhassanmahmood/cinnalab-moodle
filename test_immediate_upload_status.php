@@ -18,7 +18,6 @@ if ($is_cli) {
 
 require_once(__DIR__ . '/config.php');
 require_once($CFG->libdir . '/adminlib.php');
-require_once($CFG->libdir . '/pluginlib.php');
 
 function output($msg, $type = 'info') {
     global $is_cli;
@@ -69,18 +68,13 @@ if (is_dir($plugin_dir)) {
 $version_file = $plugin_dir . '/version.php';
 if (file_exists($version_file)) {
     output("✅ Version file exists", 'success');
-    // Use Moodle's plugin manager to get version info properly
-    $pluginman = core_plugin_manager::instance();
-    $plugininfo = $pluginman->get_plugin_info('local_immediate_s3_upload');
-    if ($plugininfo) {
-        output("Plugin version: {$plugininfo->versiondb}", 'info');
-        output("Plugin release: {$plugininfo->release}", 'info');
-    } else {
-        // Fallback: read version file manually
-        $version_content = file_get_contents($version_file);
-        if (preg_match('/\$plugin->version\s*=\s*(\d+);/', $version_content, $matches)) {
-            output("Plugin version: {$matches[1]}", 'info');
-        }
+    // Read version file content without including it (to avoid $plugin initialization issues)
+    $version_content = file_get_contents($version_file);
+    if (preg_match('/\$plugin->version\s*=\s*(\d+);/', $version_content, $matches)) {
+        output("Plugin version: {$matches[1]}", 'info');
+    }
+    if (preg_match('/\$plugin->release\s*=\s*[\'"]?([^\'";]+)[\'"]?;/', $version_content, $matches)) {
+        output("Plugin release: {$matches[1]}", 'info');
     }
 } else {
     output("❌ Version file NOT found", 'error');
