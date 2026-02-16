@@ -10,9 +10,20 @@
  * - CLI: heroku run "php test_s3_objectfs.php" --app cinnalab-moodle-production
  */
 
-// Bootstrap Moodle (minimal)
-define('CLI_SCRIPT', true);
-define('NO_OUTPUT_BUFFERING', true);
+// Bootstrap Moodle
+$is_cli = php_sapi_name() === 'cli';
+
+if ($is_cli) {
+    // CLI mode
+    define('CLI_SCRIPT', true);
+    define('NO_OUTPUT_BUFFERING', true);
+} else {
+    // Web mode - don't set CLI_SCRIPT
+    // Require login for security
+    require_once(__DIR__ . '/config.php');
+    require_login();
+    require_capability('moodle/site:config', context_system::instance());
+}
 
 // Load Moodle config
 require_once(__DIR__ . '/config.php');
@@ -29,8 +40,6 @@ if (empty($CFG->alternative_file_system_class) ||
 require_once($CFG->dirroot . '/admin/tool/objectfs/lib.php');
 require_once($CFG->dirroot . '/admin/tool/objectfs/classes/local/manager.php');
 require_once($CFG->dirroot . '/admin/tool/objectfs/classes/local/store/object_file_system.php');
-
-$is_cli = php_sapi_name() === 'cli';
 
 if (!$is_cli) {
     header('Content-Type: text/html; charset=utf-8');
