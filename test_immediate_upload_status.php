@@ -118,20 +118,28 @@ if ($minimumage == 0) {
 
 // Check 7: Event observer registration
 output("=== Event Observer Registration ===", 'info');
-$observers = core_component::get_observers('\core\event\file_created');
+require_once($CFG->libdir . '/classes/event/manager.php');
+$all_observers = \core\event\manager::get_all_observers();
+$event_name = '\core\event\file_created';
 $found = false;
-foreach ($observers as $observer) {
-    if (isset($observer['callback']) && strpos($observer['callback'], 'local_immediate_s3_upload') !== false) {
-        $found = true;
-        output("✅ Event observer registered: {$observer['callback']}", 'success');
-        output("   Priority: " . ($observer['priority'] ?? 'default'), 'info');
-        break;
+
+if (isset($all_observers[$event_name])) {
+    foreach ($all_observers[$event_name] as $observer) {
+        if (isset($observer->callable) && strpos($observer->callable, 'local_immediate_s3_upload') !== false) {
+            $found = true;
+            output("✅ Event observer registered: {$observer->callable}", 'success');
+            output("   Priority: " . ($observer->priority ?? 'default'), 'info');
+            output("   Plugin: {$observer->plugintype}/{$observer->plugin}", 'info');
+            break;
+        }
     }
 }
 
 if (!$found) {
-    output("❌ Event observer NOT registered - run: php admin/cli/purge_caches.php", 'error');
+    output("❌ Event observer NOT registered for {$event_name}", 'error');
+    output("   Run: php admin/cli/purge_caches.php", 'info');
     output("   Then run: php admin/cli/upgrade.php --non-interactive", 'info');
+    output("   Check that file exists: local/immediate_s3_upload/db/events.php", 'info');
 }
 
 // Check 8: Recent file uploads status
