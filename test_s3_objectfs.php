@@ -140,7 +140,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['testfile'])) {
         $contenthash = sha1_file($tmpfile);
         output("Content hash: {$contenthash}", 'info');
         
-        // Check if file already exists
+        // Get the local path that ObjectFS will use
+        $localpath = $fs->get_local_path_from_hash($contenthash);
+        output("Local path: {$localpath}", 'info');
+        
+        // Check if local path exists (it should, since we just uploaded it)
+        if (!file_exists($localpath)) {
+            output("WARNING: Local file does not exist at expected path!", 'warning');
+            output("Expected: {$localpath}", 'warning');
+            output("Temporary file: {$tmpfile}", 'info');
+            
+            // Try to create the directory structure and copy file
+            $dir = dirname($localpath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0777, true);
+                output("Created directory: {$dir}", 'info');
+            }
+            
+            // Copy uploaded file to expected location
+            if (copy($tmpfile, $localpath)) {
+                output("Copied file to expected location", 'success');
+            } else {
+                output("Failed to copy file to expected location", 'error');
+                output("Trying upload with temporary file path...", 'warning');
+            }
+        } else {
+            output("Local file exists at expected path", 'success');
+        }
+        
+        // Check if file already exists in ObjectFS
         $current_location = $fs->get_object_location_from_hash($contenthash);
         $location_names = [
             OBJECT_LOCATION_LOCAL => 'LOCAL',
@@ -151,48 +179,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['testfile'])) {
         ];
         output("Current location: " . ($location_names[$current_location] ?? 'UNKNOWN'), 'info');
         
-        // Try to upload
+        // If in ERROR state, reset to LOCAL first
+        if ($current_location == OBJECT_LOCATION_ERROR) {
+            output("Resetting ERROR state to LOCAL for retry...", 'info');
+            \tool_objectfs\local\manager::update_object_by_hash($contenthash, OBJECT_LOCATION_LOCAL, $filesize);
+        }
+        
+        // Get external client for direct testing
+        $external_client = $fs->get_external_client();
+        
+        // Calculate S3 path (same format as ObjectFS: first 2 chars / next 2 chars / contenthash)
+        $l1 = substr($contenthash, 0, 2);
+        $l2 = substr($contenthash, 2, 2);
+        $externalpath = "{$l1}/{$l2}/{$contenthash}";
+        output("S3 path: {$externalpath}", 'info');
+        
+        // Get bucket key prefix if available
+        $bucketprefix = '';
+        if (property_exists($external_client, 'bucketkeyprefix')) {
+            $bucketprefix = $external_client->bucketkeyprefix ?: '';
+        }
+        if ($bucketprefix) {
+            output("S3 key prefix: {$bucketprefix}", 'info');
+            output("Full S3 key: {$bucketprefix}{$externalpath}", 'info');
+        } else {
+            output("Full S3 key: {$externalpath}", 'info');
+        }
+        
+        // Try direct upload using external client to get better error messages
+        output("=== Attempting Direct Upload ===", 'info');
         try {
+            $mimetype = mime_content_type($localpath) ?: 'application/pdf';
+            output("MIME type: {$mimetype}", 'info');
+            
             $start_time = microtime(true);
-            $success = $fs->copy_from_local_to_external($contenthash);
+            $external_client->upload_to_s3($localpath, $contenthash, $mimetype);
             $upload_time = round((microtime(true) - $start_time) * 1000, 2);
             
-            if ($success) {
-                output("Upload successful! Took {$upload_time}ms", 'success');
-                
-                // Update location
-                \tool_objectfs\local\manager::update_object_by_hash($contenthash, OBJECT_LOCATION_DUPLICATED);
-                
-                // Verify new location
-                $new_location = $fs->get_object_location_from_hash($contenthash);
-                output("New location: " . ($location_names[$new_location] ?? 'UNKNOWN'), 'success');
-                
-                // Try to generate pre-signed URL
-                output("=== Test 3: Pre-signed URL Generation ===", 'info');
-                try {
-                    if (method_exists($external_client, 'generate_presigned_url')) {
-                        $presigned_url = $external_client->generate_presigned_url($contenthash);
-                        output("Pre-signed URL generated:", 'success');
-                        if ($is_cli) {
-                            output($presigned_url, 'info');
-                        } else {
-                            echo '<pre>' . htmlspecialchars($presigned_url) . '</pre>';
-                            echo '<p><a href="' . htmlspecialchars($presigned_url) . '" target="_blank">Test download</a></p>';
-                        }
-                    } else {
-                        output("Pre-signed URL generation not available", 'warning');
-                    }
-                } catch (Exception $e) {
-                    output("Pre-signed URL error: " . $e->getMessage(), 'error');
+            output("Direct upload successful! Took {$upload_time}ms", 'success');
+            
+            // Update location
+            \tool_objectfs\local\manager::update_object_by_hash($contenthash, OBJECT_LOCATION_DUPLICATED, $filesize);
+            
+            // Verify new location
+            $new_location = $fs->get_object_location_from_hash($contenthash);
+            output("New location: " . ($location_names[$new_location] ?? 'UNKNOWN'), 'success');
+            
+            // Try to generate pre-signed URL
+            output("=== Test 3: Pre-signed URL Generation ===", 'info');
+            try {
+                $presigned_url = $external_client->generate_presigned_url($contenthash);
+                output("Pre-signed URL generated:", 'success');
+                if ($is_cli) {
+                    output($presigned_url, 'info');
+                } else {
+                    echo '<pre>' . htmlspecialchars($presigned_url) . '</pre>';
+                    echo '<p><a href="' . htmlspecialchars($presigned_url) . '" target="_blank">Test download</a></p>';
                 }
-                
-            } else {
-                output("Upload failed (returned false)", 'error');
+            } catch (Exception $e) {
+                output("Pre-signed URL error: " . $e->getMessage(), 'error');
             }
+            
         } catch (Exception $e) {
-            output("Upload exception: " . $e->getMessage(), 'error');
+            output("Direct upload failed with exception:", 'error');
+            output("Error: " . $e->getMessage(), 'error');
             if (!$is_cli) {
                 echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
+            }
+            
+            // Also try via ObjectFS method
+            output("=== Trying via ObjectFS copy_from_local_to_external ===", 'info');
+            try {
+                $success = $fs->copy_from_local_to_external($contenthash);
+                if ($success) {
+                    output("ObjectFS upload successful!", 'success');
+                    \tool_objectfs\local\manager::update_object_by_hash($contenthash, OBJECT_LOCATION_DUPLICATED, $filesize);
+                } else {
+                    output("ObjectFS upload also returned false", 'error');
+                }
+            } catch (Exception $e2) {
+                output("ObjectFS upload exception: " . $e2->getMessage(), 'error');
             }
         }
     }
