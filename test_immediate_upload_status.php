@@ -151,7 +151,7 @@ try {
         f.filename,
         f.contenthash,
         f.filesize,
-        FROM_UNIXTIME(f.timecreated) as uploaded_at,
+        f.timecreated,
         CASE oo.location 
             WHEN 0 THEN 'LOCAL' 
             WHEN 1 THEN 'DUPLICATED ✅' 
@@ -167,6 +167,11 @@ try {
     LIMIT 10";
     
     $recent_files = $DB->get_records_sql($sql);
+    
+    // Format timestamps
+    foreach ($recent_files as $file) {
+        $file->uploaded_at = userdate($file->timecreated);
+    }
     
     if (empty($recent_files)) {
         output("No recent files found", 'warning');
