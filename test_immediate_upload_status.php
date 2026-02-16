@@ -169,7 +169,7 @@ try {
             echo '<tr><th>Filename</th><th>Size</th><th>Location</th><th>Uploaded</th></tr>';
             foreach ($recent_files as $file) {
                 $location_class = (strpos($file->location, '✅') !== false) ? 'success' : 
-                                 (strpos($file->location, '❌') !== false) ? 'error' : 'warning';
+                                 ((strpos($file->location, '❌') !== false) ? 'error' : 'warning');
                 echo '<tr>';
                 echo '<td>' . htmlspecialchars($file->filename) . '</td>';
                 echo '<td>' . number_format($file->filesize) . ' bytes</td>';
