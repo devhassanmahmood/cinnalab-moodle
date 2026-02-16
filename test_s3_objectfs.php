@@ -101,41 +101,25 @@ try {
     exit(1);
 }
 
-// Test 1: Check if external client is functional
-output("=== Test 1: External Client Check ===", 'info');
+// Test 1: Test S3 connection
+output("=== Test 1: S3 Connection Test ===", 'info');
 try {
-    $external_client = $fs->get_external_client();
-    if (method_exists($external_client, 'is_functional')) {
-        $functional = $external_client->is_functional();
-        if ($functional) {
-            output("External client is functional", 'success');
-        } else {
-            output("External client is NOT functional - check credentials", 'error');
-        }
-    } else {
-        output("Cannot check client functionality (method not available)", 'warning');
-    }
-} catch (Exception $e) {
-    output("Error checking external client: " . $e->getMessage(), 'error');
-}
-
-// Test 2: Test S3 connection
-output("=== Test 2: S3 Connection Test ===", 'info');
-try {
-    // Try to get external client and test connection
     $external_client = $fs->get_external_client();
     if (method_exists($external_client, 'test_connection')) {
         $result = $external_client->test_connection();
         if ($result) {
             output("S3 connection test passed", 'success');
         } else {
-            output("S3 connection test failed", 'error');
+            output("S3 connection test failed - check credentials and bucket permissions", 'error');
         }
     } else {
-        output("Connection test method not available, skipping", 'warning');
+        output("Connection test method not available", 'warning');
     }
 } catch (Exception $e) {
     output("Connection test error: " . $e->getMessage(), 'error');
+    if (!$is_cli) {
+        echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
+    }
 }
 
 // Handle file upload
@@ -184,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['testfile'])) {
                 output("New location: " . ($location_names[$new_location] ?? 'UNKNOWN'), 'success');
                 
                 // Try to generate pre-signed URL
-                output("=== Test 4: Pre-signed URL Generation ===", 'info');
+                output("=== Test 3: Pre-signed URL Generation ===", 'info');
                 try {
                     if (method_exists($external_client, 'generate_presigned_url')) {
                         $presigned_url = $external_client->generate_presigned_url($contenthash);
