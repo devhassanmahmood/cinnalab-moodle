@@ -140,8 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['testfile'])) {
         $contenthash = sha1_file($tmpfile);
         output("Content hash: {$contenthash}", 'info');
         
-        // Get the local path that ObjectFS will use
-        $localpath = $fs->get_local_path_from_hash($contenthash);
+        // Calculate the local path that ObjectFS will use (Moodle pattern: first 2 chars / next 2 chars / contenthash)
+        $l1 = substr($contenthash, 0, 2);
+        $l2 = substr($contenthash, 2, 2);
+        $localpath = $CFG->dataroot . '/filedir/' . $l1 . '/' . $l2 . '/' . $contenthash;
         output("Local path: {$localpath}", 'info');
         
         // Check if local path exists (it should, since we just uploaded it)
