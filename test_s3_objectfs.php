@@ -196,14 +196,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['testfile'])) {
         $externalpath = "{$l1}/{$l2}/{$contenthash}";
         output("S3 path: {$externalpath}", 'info');
         
-        // Get bucket key prefix if available
-        $bucketprefix = '';
-        if (property_exists($external_client, 'bucketkeyprefix')) {
-            $bucketprefix = $external_client->bucketkeyprefix ?: '';
-        }
-        if ($bucketprefix) {
-            output("S3 key prefix: {$bucketprefix}", 'info');
-            output("Full S3 key: {$bucketprefix}{$externalpath}", 'info');
+        // Get full S3 path using public method if available
+        if (method_exists($external_client, 'get_fullpath_from_hash')) {
+            $fullpath = $external_client->get_fullpath_from_hash($contenthash);
+            output("Full S3 path: {$fullpath}", 'info');
         } else {
             output("Full S3 key: {$externalpath}", 'info');
         }
