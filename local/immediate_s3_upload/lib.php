@@ -31,15 +31,35 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Hook into file creation (via hook) to immediately upload to S3.
  * This hook fires AFTER the file is written to disk, which is better for Heroku.
+ * 
+ * This function handles both:
+ * - Modern hook format: receives \core_files\hook\after_file_created object
+ * - Legacy callback format: receives stdClass filerecord
  *
- * @param \core_files\hook\after_file_created $hook
+ * @param \core_files\hook\after_file_created|\stdClass $hook_or_record Hook object or filerecord
  */
-function local_immediate_s3_upload_after_file_created(\core_files\hook\after_file_created $hook) {
-    $file = $hook->storedfile;
-    $fileid = $file->get_id();
+function local_immediate_s3_upload_after_file_created($hook_or_record) {
+    // Handle modern hook format
+    if ($hook_or_record instanceof \core_files\hook\after_file_created) {
+        $file = $hook_or_record->storedfile;
+        $fileid = $file->get_id();
+        local_immediate_s3_upload_process_file($fileid, $file);
+        return;
+    }
     
-    // Use the same upload logic
-    local_immediate_s3_upload_process_file($fileid, $file);
+    // Handle legacy callback format (stdClass filerecord)
+    if ($hook_or_record instanceof \stdClass && isset($hook_or_record->id)) {
+        $fileid = $hook_or_record->id;
+        $fs = get_file_storage();
+        $file = $fs->get_file_by_id($fileid);
+        if ($file) {
+            local_immediate_s3_upload_process_file($fileid, $file);
+        }
+        return;
+    }
+    
+    // Unknown format - log and skip
+    error_log("[ImmediateS3Upload] Unknown hook format received: " . gettype($hook_or_record));
 }
 
 /**
