@@ -21,8 +21,14 @@ $CFG->dboptions = array(
 
 // Site settings
 $CFG->wwwroot   = getenv('MOODLE_SITE_URL') ?: 'https://cinnalab-moodle-d1962611ca61.herokuapp.com';
-$CFG->dataroot = getenv('MOODLE_DATA_ROOT') ?: '/tmp/moodledata';
+// Use /app/moodledata on Heroku (writable, but ephemeral - files must go to S3 immediately)
+$CFG->dataroot = getenv('MOODLE_DATA_ROOT') ?: '/app/moodledata';
 $CFG->admin     = 'admin';
+
+// Ensure moodledata directory exists and is writable
+if (!is_dir($CFG->dataroot)) {
+    @mkdir($CFG->dataroot, 0777, true);
+}
 
 // S3 File Storage Configuration using objectfs tool
 //$CFG->alternative_file_system_class = '\tool_objectfs\s3_file_system';

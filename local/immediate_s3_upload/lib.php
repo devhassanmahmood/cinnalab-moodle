@@ -29,36 +29,60 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Hook into file creation to immediately upload to S3.
+ * Hook into file creation (via hook) to immediately upload to S3.
+ * This hook fires AFTER the file is written to disk, which is better for Heroku.
+ *
+ * @param \core_files\hook\after_file_created $hook
+ */
+function local_immediate_s3_upload_after_file_created(\core_files\hook\after_file_created $hook) {
+    $file = $hook->storedfile;
+    $fileid = $file->get_id();
+    
+    // Use the same upload logic
+    local_immediate_s3_upload_process_file($fileid, $file);
+}
+
+/**
+ * Hook into file creation (via event) to immediately upload to S3.
+ * This is a fallback in case the hook doesn't fire.
  *
  * @param \core\event\file_created $event
  */
 function local_immediate_s3_upload_file_created(\core\event\file_created $event) {
+    $fileid = $event->objectid;
+    $fs = get_file_storage();
+    $file = $fs->get_file_by_id($fileid);
+    
+    if ($file) {
+        local_immediate_s3_upload_process_file($fileid, $file);
+    }
+}
+
+/**
+ * Process file upload to S3.
+ *
+ * @param int $fileid File ID
+ * @param \stored_file $file File object
+ */
+function local_immediate_s3_upload_process_file($fileid, $file) {
     global $CFG;
 
-    $fileid = $event->objectid;
     $logprefix = "[ImmediateS3Upload] File {$fileid}: ";
 
     // Only process if ObjectFS is enabled.
     if (empty($CFG->alternative_file_system_class) ||
         $CFG->alternative_file_system_class !== '\tool_objectfs\s3_file_system') {
-        error_log($logprefix . "ObjectFS not enabled, skipping");
-        return;
+        return; // Silent return - ObjectFS not configured
     }
 
     // Check if ObjectFS tasks are enabled.
     $enabletasks = get_config('tool_objectfs', 'enabletasks');
     if (empty($enabletasks)) {
-        error_log($logprefix . "ObjectFS tasks disabled, skipping");
-        return;
+        return; // Silent return - tasks disabled
     }
 
-    // Get the file.
-    $fs = get_file_storage();
-    $file = $fs->get_file_by_id($fileid);
-
     if (!$file) {
-        error_log($logprefix . "File not found in storage");
+        error_log($logprefix . "File object is null");
         return;
     }
 
@@ -109,14 +133,41 @@ function local_immediate_s3_upload_file_created(\core\event\file_created $event)
     }
 
     // Check if local file exists before uploading.
-    $localpath = $CFG->dataroot . '/filedir/' . substr($contenthash, 0, 2) . '/' . substr($contenthash, 2, 2) . '/' . $contenthash;
-    if (!file_exists($localpath)) {
-        error_log($logprefix . "WARNING: Local file does not exist at {$localpath} - may have been deleted by Heroku");
-        error_log($logprefix . "This is expected on Heroku's ephemeral filesystem. Scheduled task will handle this.");
-        return;
+    // Try multiple possible locations (Heroku might store files temporarily in different places)
+    $l1 = substr($contenthash, 0, 2);
+    $l2 = substr($contenthash, 2, 2);
+    $localpath = $CFG->dataroot . '/filedir/' . $l1 . '/' . $l2 . '/' . $contenthash;
+    
+    // Also check PHP's temp directory (files might be there temporarily)
+    $tmppath = sys_get_temp_dir() . '/' . $contenthash;
+    
+    $fileexists = false;
+    $actualpath = null;
+    
+    if (file_exists($localpath)) {
+        $fileexists = true;
+        $actualpath = $localpath;
+    } elseif (file_exists($tmppath)) {
+        $fileexists = true;
+        $actualpath = $tmppath;
+        // Try to move it to the correct location
+        $dir = dirname($localpath);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        if (@copy($tmppath, $localpath)) {
+            $actualpath = $localpath;
+            error_log($logprefix . "Moved file from temp to {$localpath}");
+        }
     }
-
-    error_log($logprefix . "Local file exists, attempting upload to S3...");
+    
+    if (!$fileexists) {
+        error_log($logprefix . "WARNING: Local file does not exist at {$localpath} or {$tmppath}");
+        error_log($logprefix . "File may have been deleted by Heroku. Attempting upload anyway - ObjectFS may handle it.");
+        // Continue - ObjectFS might be able to upload from contenthash alone or from another location
+    } else {
+        error_log($logprefix . "Found file at: {$actualpath}, attempting upload to S3...");
+    }
 
     // Upload immediately using ObjectFS method that handles location updates.
     try {
